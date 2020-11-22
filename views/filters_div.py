@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 
-def render_filters(matches_df):
+def get_filters_div(matches_df):
     # First Div Block
     row1 = html.Div([
             # Select Player
@@ -11,7 +11,7 @@ def render_filters(matches_df):
                 id='player_name',
                 options=[{'label': n, 'value':n} for n in sorted(matches_df['player_name'].unique())],
                 value='Roger Federer',
-                clearable=False, 
+                clearable=False,
                 style={'justify': 'center', 'align': 'center', 'text-align': 'center'}
                 ),
             ],
@@ -44,7 +44,8 @@ def render_filters(matches_df):
             html.H5('Select Tournaments', style={'justify': 'center', 'align': 'center', 'text-align': 'center'}),
             dcc.Dropdown(
                 id='tournament',
-                searchable=True, multi=True,
+                searchable=True, 
+                multi=True,
                 style={'justify': 'center', 'align': 'center', 'text-align': 'center'}
                 ),
             ],
@@ -62,7 +63,6 @@ def render_filters(matches_df):
             dcc.Dropdown(
                 id='opponent',
                 multi=True,
-                clearable=False,
                 style={'justify': 'center', 'align': 'center', 'text-align': 'center'}
                 )
             ],
@@ -73,7 +73,6 @@ def render_filters(matches_df):
             html.H5('Select Opponents Rank', style={'justify': 'center', 'align': 'center', 'text-align': 'center'}),
             dcc.Dropdown(
                 id='opponent_rank',
-                clearable=False,
                 options=[{'label': 'Top 5', 'value': 5}, 
                             {'label': 'Top 10', 'value': 10}, 
                             {'label': 'Top 20', 'value': 20}, 
@@ -91,7 +90,7 @@ def render_filters(matches_df):
             dcc.Dropdown(
                 id='round',
                 multi=True,
-                clearable=False,
+                #clearable=False,
                 style={'justify': 'center', 'align': 'center', 'text-align': 'center'}
                 )
             ],
@@ -102,17 +101,6 @@ def render_filters(matches_df):
     )
 
     row3 = html.Div([
-        # html.Div([
-        #     html.H5('Select a Stat', style={'justify': 'center', 'align': 'center', 'text-align': 'center'}),
-        #     dcc.Dropdown(
-        #         id='column',
-        #         options=[{'label': c, 'value': c} for c in matches_df.columns if 'perc' in c],
-        #         value='perc1stIn',
-        #         style={'justify': 'center', 'align': 'center', 'text-align': 'center'}
-        #         )
-        #     ], 
-        #     style={'width': '24%', 'display': 'inline-block', 'margin-left': '1%'}
-        # ),
         html.Div([
             html.H5('Select Time Period', style={'justify': 'center', 'align': 'center', 'text-align': 'center'}),
             dcc.RangeSlider(

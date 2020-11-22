@@ -139,7 +139,8 @@ scraper_settings = {
         'w_percBpWon', 
         'w_percSvLost',
         'w_returnWon', 
-        'w_percReturnWon'
+        'w_percReturnWon',
+        'w_percServePointsWon'
     ],
 
     'l_cols': [
@@ -187,7 +188,8 @@ scraper_settings = {
         'l_percBpWon', 
         'l_percSvLost',
         'l_returnWon', 
-        'l_percReturnWon'
+        'l_percReturnWon',
+        'l_percServePointsWon'
     ],
 
     'wl_cols': [
@@ -235,7 +237,8 @@ scraper_settings = {
         'percBpWon', 
         'percSvLost',
         'returnWon', 
-        'percReturnWon'
+        'percReturnWon',
+        'percServePointsWon'
     ]
 
 }

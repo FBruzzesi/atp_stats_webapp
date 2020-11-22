@@ -18,7 +18,7 @@ from tennis_utils.player import TennisPlayer, TennisDataLoader, TennisPlayerData
 
 from tennis_utils.settings import tennis_player_settings
 
-from views.filters_div import render_filters
+from views.filters_div import get_filters_div
 
 surface_colors = tennis_player_settings['surface_colors']
 colors = tennis_player_settings['colors']
@@ -29,7 +29,7 @@ tdl = TennisDataLoader(data_path+'/matches.parquet', data_path+'/players.parquet
 matches_df, players_df = tdl.matches, tdl.players
 
 
-row1, row2, row3 = render_filters(matches_df)
+row1, row2, row3 = get_filters_div(matches_df)
 # tdata['tourney_name'] = np.where(tdata['tourney_name'].str.startswith('Davis Cup'), 'Davis Cup', tdata['tourney_name'])
 
 # unq_tdata = mdata[['tourney_name', 'tourney_level', 'surface']].drop_duplicates()
@@ -75,51 +75,22 @@ app.layout = html.Div([
     row2,
     row3,
     html.Div([
-        dcc.Tabs(id="tabs-styled-with-inline", 
-            value='tab-1', 
+        dcc.Tabs(id='tabs', 
+            value='details', 
             children=[
-                dcc.Tab(label='Tab 1', value='tab-1'),
-                dcc.Tab(label='Tab 2', value='tab-2'),
-                dcc.Tab(label='Tab 3', value='tab-3'),
+                dcc.Tab(label='Player Details', value='details'),
+                dcc.Tab(label='Serve & Return - Time Series', value='sr_ts'),
+                dcc.Tab(label='Serve & Return - Distributions', value='sr_dist'),
+                dcc.Tab(label='Under Pressure', value='pressure'),
             ], 
             colors={
-                "border": "white",
-                "primary": "gold",
-                "background": "cornsilk"
-            }
-    ),
-    html.Div(id='tabs-content-inline')
-    ]),
-    html.Div([
-        dcc.Graph(
-            id='rnk',
-            hoverData={'points': [{'customdata': 'Japan'}]}
+                'border': 'white',
+                'primary': 'gold',
+                'background': 'cornsilk'
+                }
         ),
-        dcc.Graph(
-            id='win_rate',
-            hoverData={'points': [{'customdata': 'Japan'}]}
-        )
-        
-    ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-    ),
-    html.Div([
-        dcc.Graph(
-            id='sunburst',
-            hoverData={'points': [{'customdata': 'Japan'}]}
-        )
-    ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-    ),
-    html.Div([
-        dcc.Graph(
-            id='lineplot',
-            hoverData={'points': [{'customdata': 'Japan'}]}
-        )
-    ], style={'width': '95%', 'height':'700px', 'display': 'inline-block', 'padding': '0 20'}
-    ),
-    html.Div([
-        dcc.Graph(id='boxplot', style={'display': 'inline-block', 'width': '45%'}),
-        dcc.Graph(id='distplot', style={'display': 'inline-block', 'width': '45%'})
-    ])
+        html.Div(id='tab-content')
+    ]),
 ])
 
 
@@ -129,8 +100,11 @@ app.layout = html.Div([
 Defining App callbacks i.e. interactions
 '''
 
+
+# Select Player and update all other filters field
 @app.callback(
-    [Output(component_id='selected_player_matches', component_property='children'),
+    [
+     Output(component_id='selected_player_matches', component_property='children'),
      Output(component_id='selected_player_details', component_property='children'),
      Output(component_id='selected_player_rank', component_property='children'),
      Output(component_id='time_period', component_property='min'),
@@ -151,8 +125,8 @@ def select_player(player_name):
 
     tpdl = TennisPlayerDataLoader(player_name, matches_df, players_df)
     # Subset selected player matches data
-    player_matches = tpdl.player_matches #matches_df[matches_df['player_name'] == player_name]
-    player_details = tpdl.player_details #players_df[players_df['player_name']==player_name]
+    player_matches = tpdl.player_matches
+    player_details = tpdl.player_details
     player_rank = tpdl.player_rank
 
     yr_min, yr_max = player_matches['year'].min(), player_matches['year'].max()
@@ -196,16 +170,14 @@ def select_player(player_name):
 
 
 
+
+
+
+
 @app.callback(
+    Output(component_id='tab-content', component_property='children'),
     [
-     Output(component_id='rnk', component_property='figure'),
-     Output(component_id='win_rate', component_property='figure'),
-     Output(component_id='sunburst', component_property='figure'),
-     Output(component_id='lineplot', component_property='figure'),
-     Output(component_id='boxplot', component_property='figure'),
-     Output(component_id='distplot', component_property='figure'),
-    ],
-    [
+     Input(component_id='tabs', component_property='value'),
      Input(component_id='selected_player_matches', component_property='children'),
      Input(component_id='selected_player_details', component_property='children'),
      Input(component_id='selected_player_rank', component_property='children'),
@@ -220,7 +192,8 @@ def select_player(player_name):
     [State(component_id='player_name', component_property='value')]
 )
     
-def render_player(player_matches,
+def render_player(tab,
+                  player_matches,
                   player_details,
                   player_rank,
                   time_period,
@@ -251,21 +224,93 @@ def render_player(player_matches,
             opponent_ranks = opponent_ranks
     )
 
-        
-    
     color = colors[0]
     
-    col = 'perc1stIn'
-    fig_win_rate = tp.plot_yearly_wr()
-    fig_rank = tp.plot_rank()
-    fig_surface_wl = tp.plot_surface_wl()
-    fig_col_overtime = tp.plot_col_overtime(col, color)
-    fig_surface_boxplot = tp.plot_surface_boxplot(col)
-    fig_col_distplot = tp.plot_col_distplot(col, colors)
-    
-    
-    return fig_rank, fig_win_rate, fig_surface_wl, fig_col_overtime, fig_surface_boxplot, fig_col_distplot
 
+    if tab == 'details':
+
+        # Generate figures
+        fig_rank = tp.plot_rank()
+        fig_yearly_winrate = tp.plot_yearly_wr()
+        fig_winrate = tp.plot_winrate()
+        fig_surface_wl = tp.plot_surface_wl()
+
+        # Create html Div
+        div = html.Div([
+            dcc.Graph(
+                figure=fig_rank,
+                id='rnk',
+                hoverData={'points': [{'customdata': 'Japan'}]}
+            ),
+            dcc.Graph(
+                figure=fig_yearly_winrate,
+                id='yearly_winrate',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'display':'inline-block', 'width':'75%'}
+            ),
+            dcc.Graph(
+                figure=fig_winrate,
+                id='winrate',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'display':'inline-block', 'width':'25%'}
+            ),
+            dcc.Graph(
+                figure=fig_surface_wl,
+                id='winrate_by_surface',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+            ),
+            
+        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        )
+
+
+
+    elif tab == 'sr_ts':
+    
+        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
+
+        fig_cols_overtime = tp.plot_cols_overtime(cols)
+        # fig_surface_boxplot = tp.plot_surface_boxplot(col)
+        # fig_col_distplot = tp.plot_col_distplot(col, colors)
+
+        div = html.Div([
+            dcc.Graph(
+                figure=fig_cols_overtime,
+                id='col_timeseries',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'height': '95%'}
+            )
+            # dcc.Graph(
+            #     figure=fig_surface_boxplot,
+            #     id='col_surface',
+            #     hoverData={'points': [{'customdata': 'Japan'}]},
+            #     style={'display':'inline-block', 'width':'25%'}
+            # ),
+            # dcc.Graph(
+            #     figure=fig_col_distplot,
+            #     id='col_dist',
+            #     hoverData={'points': [{'customdata': 'Japan'}]},
+            #     style={'display':'inline-block', 'width':'25%'},
+            # ),
+
+        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20',
+                  'height': '2000px'}
+        )
+
+    elif tab == 'sr_dist':
+
+        pass
+
+    elif tab == 'pressure':
+
+        pass
+    
+    
+    return div
+
+
+    
+    
 
 '''
 @app.callback(

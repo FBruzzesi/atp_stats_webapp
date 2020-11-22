@@ -184,6 +184,8 @@ class TennisPlayerDataLoader:
 
 
 
+
+
 class TennisPlayer:
     '''
     Attributes
@@ -238,10 +240,13 @@ class TennisPlayer:
             'opponent_rank': opponent_ranks
         }
         
+        self.stats_cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
 
         self.selected_matches = self.select_matches()
         self.n_matches = self.selected_matches.shape[0]
         self.player_rank = self.get_rank(player_rank)
+
+        self.win_rate = self.selected_matches['result'].value_counts(normalize=True).sort_index()
 
         self.yearly_wr = self.get_yearly_winrate()
         self.surface_wl = self.get_surface_winloss()
@@ -254,8 +259,7 @@ class TennisPlayer:
 
     def select_matches(self):
         '''
-        Subsets self.matches based on time period, surfaces, tournament levels, 
-        tournaments, opponents, rounds and n_top_seeds
+        Subsets self.matches based on self.filters value
 
         '''
 
@@ -265,13 +269,9 @@ class TennisPlayer:
 
         masks = [time_mask]
         
-
         for key, value in self.filters.items():
-
-            if value is not None and key not in ['time_start', 'time_end']:
-
-                m = self.player_matches['opponent_rank'] < value if key=='n_top_seed' else self.player_matches[key].isin(value)
-
+            if (key not in ['time_start', 'time_end']) and (value is not None) and (value != []):
+                m = self.player_matches['opponent_rank'] < value if key=='opponent_rank' else self.player_matches[key].isin(value)
                 masks.append(m)
 
         return self.player_matches.loc[np.all(np.array(masks).T, axis=1)]
@@ -279,7 +279,7 @@ class TennisPlayer:
 
     def get_rank(self, rank_df):
         '''
-        Calculate time series of player rank and rank points
+        Generate time series of player rank and rank points
         
         Returns
         -------
@@ -294,15 +294,14 @@ class TennisPlayer:
         return rank_df.loc[time_mask]
  
 
-    
     def get_yearly_winrate(self):
         '''
-        Calculate winrate statistics over time (years)
-        
+        Calculate winrate percentage and number of matches played each year
+
         Returns
         -------
         wr_df: pd.DataFrame
-            winrate statistics over time
+            winrate percentage and number of matches played
         '''
         
         wr_df = (self.selected_matches.groupby('year')
@@ -314,6 +313,7 @@ class TennisPlayer:
         wr_df['win_rate'] = wr_df['matches_won'].to_numpy()/wr_df['matches_played'].to_numpy()
         wr_df.reset_index(inplace=True)
         
+        self.yearly_wr = wr_df
         return wr_df
     
     
@@ -332,6 +332,97 @@ class TennisPlayer:
         return wr_df 
     
          
+
+    def plot_rank(self):
+        
+        x = self.player_rank['tourney_date'].to_numpy()
+        y1 = self.player_rank['rank'].to_numpy()
+        y2 = self.player_rank['rank_points'].to_numpy()
+        
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+        fig.add_trace(
+            go.Scatter(
+                x=x, y=y1,
+                name='Rank',
+                marker={'color': 'goldenrod'},
+                mode='lines+text',
+                text=[p if i%5==0 else None for i, p in enumerate(y1)],
+                textposition='top center',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=x, y=y2,
+                name='Rank Points',
+                line={'color':'midnightblue', 'width':2.5},
+                mode='lines+text',
+                text=[p if i%5==0 else None for i, p in enumerate(y2)],
+                textposition='top center',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=True
+        )
+        
+        fig.update_layout(
+            barmode='stack',
+            title={'text': 'Rank and Points over Time', 'y':0.9, 'x':0.5,
+                   'xanchor': 'center', 'yanchor': 'top'},
+            yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
+            yaxis2={'title': 'Rank Points', 'range': [0, np.max(y2)*1.1]},
+        )
+        
+        return fig
+    
+
+
+    def plot_winrate(self):
+
+        fig = go.Figure(
+            go.Pie(
+                labels=self.win_rate.index,
+                values=self.win_rate.to_numpy(),
+                marker={'colors': ['indianred', 'seagreen'],
+                        'line': {'color':'white', 'width':1}
+                }
+            )
+        )
+
+        fig.update_layout(
+            title={'text': 'Overall Win Rate (%)', 'y':0.9, 'x':0.5,
+                   'xanchor': 'center', 'yanchor': 'top'},
+            legend={'x': .95}
+
+        )
+        return fig
+
+
+
+
+    def plot_surface_wl(self, surface_colors: Dict = surface_colors):
+        
+        fig = px.sunburst(
+                data_frame=self.surface_wl, 
+                path=['surface', 'result'], 
+                values='cnt', 
+                names='cnt',
+                hover_data=['cnt']
+                        )
+
+        fig.data[0].marker.colors = [surface_colors[s.split('/')[0]] for s in fig.data[0].ids]
+        
+        fig.update_layout(
+                    title={'text': 'Win-Loss by Surface', 
+                           'y':1, 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'},
+        )
+        
+        return fig
+    
 
     def plot_yearly_wr(self):
         
@@ -386,103 +477,74 @@ class TennisPlayer:
                    'xanchor': 'center', 'yanchor': 'top'},
             xaxis={'type':'category'},
             yaxis={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
-            yaxis2={'range':[0, 105], 'title': 'Win Rate (%)'}
+            yaxis2={'range':[0, 105], 'title': 'Win Rate (%)'},
+            legend={'x': .95}
         )
 
         return fig
 
 
 
-    def plot_rank(self):
-        
-        x = self.player_rank['tourney_date'].to_numpy()
-        y1 = self.player_rank['rank'].to_numpy()
-        y2 = self.player_rank['rank_points'].to_numpy()
-        
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=y1,
-                name='Rank',
-                marker={'color': 'goldenrod'},
-                mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y1)],
-                textposition='top center',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=False
-        )
+    def plot_cols_overtime(self, cols, color='mediumblue'):
 
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=y2,
-                name='Rank Points',
-                line={'color':'midnightblue', 'width':2.5},
-                mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y2)],
-                textposition='top center',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=True
-        )
-        
-        fig.update_layout(
-            barmode='stack',
-            title={'text': 'Rank and Points over Time', 'y':0.9, 'x':0.5,
-                   'xanchor': 'center', 'yanchor': 'top'},
-            yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
-            yaxis2={'title': 'Rank Points', 'range': [0, np.max(y2)*1.1]},
-        )
-        
-        return fig
-    
-
-    def plot_surface_wl(self, surface_colors: Dict = surface_colors):
-        
-        fig = px.sunburst(self.surface_wl, path=['surface', 'result'], values='cnt', names='cnt')
-        fig.data[0].marker.colors = [surface_colors[s.split('/')[0]] for s in fig.data[0].ids]
-        
-        fig.update_layout(
-                    title={'text': 'Win-Loss by Surface', 
-                           'y':1, 'x':0.5, 'xanchor': 'center', 'yanchor': 'top'},
-        )
-        
-        return fig
-    
-
-    def plot_col_overtime(self, col, color='mediumblue'):
-        
         m = self.selected_matches
         x = m['tourney_name'] + '(' + m['year'].astype(str) + '), ' + m['round']
-        y = m[col]
-        txt = m[col].astype(float).round(2).astype(str) + ', ' + m['opponent_name'].apply(get_player_name) + ': ' + m['result']
-    
-        trace = go.Scatter(
-                    x=x, y=y,
-                    name='',
-                    textposition='top center',
-                    hovertemplate=txt,
-                    texttemplate=txt,
-                    mode='lines+markers',
-                    connectgaps=True,
-                    marker={'color': color, 'symbol': m['winner']#, 'colorscale': [[0, colors[0]], [1, colors[1]]]
-                           },
-        ),
-    
-        layout = go.Layout(
-                    height=600,
-                    title={'text': f'Percentage {col} over Time', 'y':0.9, 'x':0.5,
-                           'xanchor': 'center', 'yanchor': 'top'},
-                    xaxis={'title': 'Tournament (Year), Round',
-                           'tickangle': 45},
-                    yaxis={'title': 'Percentage'}
+
+        txt_suffix = ', ' + m['opponent_name'].apply(get_player_name) + ': ' + m['result']
+
+        symbol = m['winner']
+        colors = px.colors.sequential.Sunset
+        colors = [
+            'rgb(33,113,181)',
+            'rgb(217,71,1)',
+            'rgb(81, 178, 124)',
+            'rgb(235, 127, 134)'
+        ]
+
+
+
+        fig = make_subplots(
+            cols=1, rows=len(cols),
+            specs=[[{}]]*len(cols),
+            shared_xaxes=True,
+            row_heights=[500]*len(cols),
+            subplot_titles=['Percentage 1st In', 'Percentage 1st Won', 'Percentage 2nd Won', 'Percentage Return Won'],
+            vertical_spacing=0.05
         )
         
-        return go.Figure(data=trace, layout=layout)
+
+        for i, col in enumerate(cols):
+
+            y = m[col]
+            txt = y.astype(float).round(2).astype(str) + txt_suffix
     
+            trace = go.Scatter(
+                x=x, y=y,
+                name=col,
+                textposition='top center',
+                hovertemplate=txt,
+                texttemplate=txt,
+                mode='lines+markers',
+                connectgaps=True,
+                marker={'color': colors[i], 'symbol': symbol},
+            )
+            
+            fig.add_trace(trace, row=i+1, col=1)
+
+
+        fig.update_layout(
+            xaxis4={'title': 'Tournament (Year), Round', 'tickangle': 45},
+            yaxis={'title': 'Percentage'},
+            yaxis2={'title': 'Percentage'},
+            yaxis3={'title': 'Percentage'},
+            yaxis4={'title': 'Percentage'},
+            showlegend=False
+        )
+    
+        return fig
+    
+
     def plot_surface_boxplot(self, col: str, surface_colors: Dict = surface_colors):
         
         fig = px.box(self.selected_matches, x=col, color='surface', 
@@ -502,7 +564,7 @@ class TennisPlayer:
 
     def plot_col_distplot(self, col, colors):
         
-        fig = px.histogram(self.selected_matches, x=col, color_discrete_sequence=colors, nbins=50, 
+        fig = px.histogram(self.selected_matches, y=col, color_discrete_sequence=colors, nbins=50, 
                           marginal='box', histnorm='probability', opacity=0.8)
 
         fig.update_layout(
@@ -514,3 +576,20 @@ class TennisPlayer:
         )
         
         return fig
+
+
+    def get_stats(self):
+
+        t = (self.selected_matches.groupby('year')
+                .agg(mean_perc1stIn = ('perc1stIn', np.mean),
+                     mean_perc1stWon = ('perc1stWon', np.mean),
+                     mean_perc2ndWon = ('perc2ndWon', np.mean),
+                     mean_percReturnWon = ('percReturnWon', np.mean),
+                     std_perc1stIn = ('perc1stIn', np.std),
+                     std_perc1stWon = ('perc1stWon', np.std),
+                     std_perc2ndWon = ('perc2ndWon', np.std),
+                     std_percReturnWon = ('percReturnWon', np.std))
+                .reset_index()
+        )
+
+        return t
