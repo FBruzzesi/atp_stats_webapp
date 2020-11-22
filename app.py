@@ -13,11 +13,8 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
-from tennis_utils.scrapers import SackmanScraper
 from tennis_utils.player import TennisPlayer, TennisDataLoader, TennisPlayerDataLoader
-
 from tennis_utils.settings import tennis_player_settings
-
 from views.filters_div import get_filters_div
 
 surface_colors = tennis_player_settings['surface_colors']
@@ -30,18 +27,8 @@ matches_df, players_df = tdl.matches, tdl.players
 
 
 row1, row2, row3 = get_filters_div(matches_df)
-# tdata['tourney_name'] = np.where(tdata['tourney_name'].str.startswith('Davis Cup'), 'Davis Cup', tdata['tourney_name'])
 
-# unq_tdata = mdata[['tourney_name', 'tourney_level', 'surface']].drop_duplicates()
 
-# Settings
-
-surface_colors = {
-    'Clay':'firebrick', 
-    'Grass':'seagreen', 
-    'Hard':'midnightblue', 
-    'Carpet':'limegreen'
-}
 
 tourney_level_map = {
     'A': 'Atp 500',
@@ -76,7 +63,7 @@ app.layout = html.Div([
     row3,
     html.Div([
         dcc.Tabs(id='tabs', 
-            value='details', 
+            value='sr_dist', 
             children=[
                 dcc.Tab(label='Player Details', value='details'),
                 dcc.Tab(label='Serve & Return - Time Series', value='sr_ts'),
@@ -223,8 +210,6 @@ def render_player(tab,
             rounds = rounds,
             opponent_ranks = opponent_ranks
     )
-
-    color = colors[0]
     
 
     if tab == 'details':
@@ -267,11 +252,7 @@ def render_player(tab,
 
     elif tab == 'sr_ts':
     
-        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
-
-        fig_cols_overtime = tp.plot_cols_overtime(cols)
-        # fig_surface_boxplot = tp.plot_surface_boxplot(col)
-        # fig_col_distplot = tp.plot_col_distplot(col, colors)
+        fig_cols_overtime = tp.plot_cols_overtime()
 
         div = html.Div([
             dcc.Graph(
@@ -280,26 +261,23 @@ def render_player(tab,
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-            # dcc.Graph(
-            #     figure=fig_surface_boxplot,
-            #     id='col_surface',
-            #     hoverData={'points': [{'customdata': 'Japan'}]},
-            #     style={'display':'inline-block', 'width':'25%'}
-            # ),
-            # dcc.Graph(
-            #     figure=fig_col_distplot,
-            #     id='col_dist',
-            #     hoverData={'points': [{'customdata': 'Japan'}]},
-            #     style={'display':'inline-block', 'width':'25%'},
-            # ),
-
-        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20',
-                  'height': '2000px'}
+        ], style={'height': '1600px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
     elif tab == 'sr_dist':
 
-        pass
+
+        fig_cols_distribution = tp.plot_cols_distribution()
+
+        div = html.Div([
+            dcc.Graph(
+                figure=fig_cols_distribution,
+                id='col_distrib',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'height': '95%'}
+            )
+        ], style={'height': '1600px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        )
 
     elif tab == 'pressure':
 

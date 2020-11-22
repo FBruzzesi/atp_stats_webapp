@@ -248,8 +248,9 @@ class TennisPlayer:
 
         self.win_rate = self.selected_matches['result'].value_counts(normalize=True).sort_index()
 
-        self.yearly_wr = self.get_yearly_winrate()
-        self.surface_wl = self.get_surface_winloss()
+        self.get_yearly_winrate()
+        self.get_surface_winloss()
+        self.get_yearly_stats()
             
 
     def __repr__(self):
@@ -304,17 +305,16 @@ class TennisPlayer:
             winrate percentage and number of matches played
         '''
         
-        wr_df = (self.selected_matches.groupby('year')
-                     .agg(matches_played=('winner', np.size),
-                          matches_won=('winner', np.sum))
-                )
+        yearly_wr = (self.selected_matches.groupby('year')
+                        .agg(matches_played=('winner', np.size),
+                             matches_won=('winner', np.sum))
+                        .reset_index()
+                        .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
+                        .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
+                    )
 
-        wr_df['matches_lost'] = wr_df['matches_played'].to_numpy() - wr_df['matches_won'].to_numpy()
-        wr_df['win_rate'] = wr_df['matches_won'].to_numpy()/wr_df['matches_played'].to_numpy()
-        wr_df.reset_index(inplace=True)
-        
-        self.yearly_wr = wr_df
-        return wr_df
+        self.yearly_wr = yearly_wr
+        return self
     
     
     def get_surface_winloss(self):
@@ -326,12 +326,36 @@ class TennisPlayer:
         wr_df: pd.DataFrame
             winnloss count by syrface
         '''
-        wr_df = self.selected_matches.groupby(['surface', 'result']).size().reset_index()
-        wr_df.columns = ['surface', 'result', 'cnt']
+        surface_wl = self.selected_matches.groupby(['surface', 'result']).size().reset_index()
+        surface_wl.columns = ['surface', 'result', 'cnt']
         
-        return wr_df 
+        self.surface_wl = surface_wl
+        return self
     
-         
+
+    def get_yearly_stats(self):
+        '''
+        Calculate yearly mean and std value for perc1stIn, perc1stWon, perc2ndWon, percReturnWon
+        '''
+        yearly_stats = (self.selected_matches.groupby('year')
+                .agg(mean_perc1stIn = ('perc1stIn', np.mean),
+                     mean_perc1stWon = ('perc1stWon', np.mean),
+                     mean_perc2ndWon = ('perc2ndWon', np.mean),
+                     mean_percReturnWon = ('percReturnWon', np.mean),
+                     std_perc1stIn = ('perc1stIn', np.std),
+                     std_perc1stWon = ('perc1stWon', np.std),
+                     std_perc2ndWon = ('perc2ndWon', np.std),
+                     std_percReturnWon = ('percReturnWon', np.std)
+                )
+                .reset_index()
+                .fillna(0.01)
+            )
+
+        self.yearly_stats = yearly_stats
+        return self
+
+
+    # Plotting Functionalities    
 
     def plot_rank(self):
         
@@ -484,17 +508,20 @@ class TennisPlayer:
         return fig
 
 
+    def plot_cols_overtime(self):
+
+        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
+
+        m1, m2 = self.selected_matches, self.yearly_stats
+
+        x1 = m1['tourney_name'] + '(' + m1['year'].astype(str) + '), ' + m1['round']
+        txt_suffix = ', ' + m1['opponent_name'].apply(get_player_name) + ': ' + m1['result']
+        symbol = m1['winner']
+
+        x2 = m2['year']
+        
 
 
-    def plot_cols_overtime(self, cols, color='mediumblue'):
-
-        m = self.selected_matches
-        x = m['tourney_name'] + '(' + m['year'].astype(str) + '), ' + m['round']
-
-        txt_suffix = ', ' + m['opponent_name'].apply(get_player_name) + ': ' + m['result']
-
-        symbol = m['winner']
-        colors = px.colors.sequential.Sunset
         colors = [
             'rgb(33,113,181)',
             'rgb(217,71,1)',
@@ -505,45 +532,179 @@ class TennisPlayer:
 
 
         fig = make_subplots(
-            cols=1, rows=len(cols),
-            specs=[[{}]]*len(cols),
+            cols=2, rows=len(cols),
+            specs=[[{}, {}]]*len(cols),
             shared_xaxes=True,
-            row_heights=[500]*len(cols),
-            subplot_titles=['Percentage 1st In', 'Percentage 1st Won', 'Percentage 2nd Won', 'Percentage Return Won'],
-            vertical_spacing=0.05
+            row_heights=[350]*len(cols),
+            subplot_titles=[
+                'Percentage 1st In - Match by Match',  'Percentage 1st In - Yearly mean and 95% CI',
+                'Percentage 1st Won - Match by Match',  'Percentage 1st Won - Yearly mean and 95% CI',
+                'Percentage 2nd Won - Match by Match',  'Percentage 2nd Won - Yearly mean and 95% CI',
+                'Percentage Return Won - Match by Match',  'Percentage Return Won - Yearly mean and 95% CI'
+                ],
+            column_widths=[0.65, 0.35],
+            vertical_spacing=0.05,
+            horizontal_spacing=0.05
         )
         
 
         for i, col in enumerate(cols):
 
-            y = m[col]
-            txt = y.astype(float).round(2).astype(str) + txt_suffix
+            y1 = m1[col]
+            txt = y1.astype(float).round(2).astype(str) + txt_suffix
     
-            trace = go.Scatter(
-                x=x, y=y,
-                name=col,
-                textposition='top center',
-                hovertemplate=txt,
-                texttemplate=txt,
-                mode='lines+markers',
-                connectgaps=True,
-                marker={'color': colors[i], 'symbol': symbol},
+            fig.add_trace(
+                go.Scatter(
+                    x=x1, y=y1,
+                    name=col,
+                    textposition='top center',
+                    hovertemplate=txt,
+                    texttemplate=txt,
+                    mode='lines+markers',
+                    connectgaps=True,
+                    marker={'color': colors[i], 'symbol': symbol},
+                ),
+                row=i+1, col=1
             )
+
+
+            mean, std = m2['mean_'+col].to_numpy(), m2['std_'+col].to_numpy()
+            y2, y3 = mean + 2*std, mean-2*std
             
-            fig.add_trace(trace, row=i+1, col=1)
+            fig.add_trace(
+                go.Scatter(
+                    x=x2, y=y2,
+                    name='Upper Band',
+                    fill=None,
+                    mode='lines',
+                    line=dict(color='darksalmon', width=1)
+                ),
+                row=i+1, col=2
+            )
+    
+            fig.add_trace(
+                go.Scatter(
+                    x=x2, y=y3,
+                    name='Lower Band',
+                    fill='tonexty', # fill area between trace0 and trace1
+                    mode='lines',
+                    line=dict(color='darksalmon', width=1)
+                ),
+                row=i+1, col=2
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x2, y=mean,
+                    name=f'Mean {col}',
+                    mode='lines+markers',
+                    marker={'color': colors[i]}
+                ),
+                row=i+1, col=2
+            )
 
 
+        # Layout
         fig.update_layout(
-            xaxis4={'title': 'Tournament (Year), Round', 'tickangle': 45},
-            yaxis={'title': 'Percentage'},
-            yaxis2={'title': 'Percentage'},
-            yaxis3={'title': 'Percentage'},
-            yaxis4={'title': 'Percentage'},
+            xaxis7={'title': 'Tournament (Year), Round', 'tickangle': 45},
+            xaxis8={'title': 'Year', 'tickangle': 45},
+            yaxis={'title': 'Percentage'}, yaxis2={'title': 'Percentage', 'side':'right'},
+            yaxis3={'title': 'Percentage'}, yaxis4={'title': 'Percentage', 'side':'right'},
+            yaxis5={'title': 'Percentage'}, yaxis6={'title': 'Percentage', 'side':'right'},
+            yaxis7={'title': 'Percentage'}, yaxis8={'title': 'Percentage', 'side':'right'},
             showlegend=False
         )
     
         return fig
     
+
+
+
+    def plot_cols_distribution(self):
+
+        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
+        m = self.selected_matches
+
+        colors = [
+            'rgb(33,113,181)',
+            'rgb(217,71,1)',
+            'rgb(81, 178, 124)',
+            'rgb(235, 127, 134)'
+        ]
+
+
+
+        fig = make_subplots(
+            cols=2, rows=len(cols),
+            specs=[[{}, {}]]*len(cols),
+            shared_xaxes=True,
+            row_heights=[350]*len(cols),
+            subplot_titles=[
+                'Distribution Percentage 1st In',  'Percentage 1st In by Surface',
+                'Distribution Percentage 1st Won',  'Percentage 1st Won by Surface',
+                'Distribution Percentage 2nd Won',  'Percentage 2nd Won by Surface',
+                'Distribution Percentage Return Won',  'Percentage Return Won by Surface'
+                ],
+            column_widths=[0.65, 0.35],
+            vertical_spacing=0.05,
+            horizontal_spacing=0.05
+        )
+        
+
+        for i, col in enumerate(cols):
+
+            trace1 = ff.create_distplot([m[col].to_numpy()], bin_size=0.015,
+                        group_labels=[col], show_rug=False, colors=[colors[i]],
+                        histnorm='probability'
+                    )
+
+            fig.add_trace(
+                trace1['data'][0],
+                row=i+1, col=1
+            )
+
+            fig.add_trace(
+                trace1['data'][1],
+                row=i+1, col=1
+            )
+
+            for s in m['surface'].unique():
+
+                m_temp = m.loc[m['surface']==s]
+                fig.add_trace(
+                    go.Box(
+                        y=m_temp['surface'],
+                        x=m_temp[col],
+                        marker={'color': surface_colors[s]},
+                        orientation='h'
+                    ),
+                    row=i+1, col=2
+                )      
+        
+
+        # Layout
+        fig.update_layout(
+            xaxis7={'title': 'Percentage'}, xaxis8={'title': 'Percentage'},
+            yaxis={'title': 'Probability'}, yaxis2={'title': 'Surface', 'side':'right'},
+            yaxis3={'title': 'Probability'}, yaxis4={'title': 'Surface', 'side':'right'},
+            yaxis5={'title': 'Probability'}, yaxis6={'title': 'Surface', 'side':'right'},
+            yaxis7={'title': 'Probability'}, yaxis8={'title': 'Surface', 'side':'right'},
+            showlegend=False
+        )
+    
+        return fig
+
+
+
+
+
+
+
+
+
+
+
+
 
     def plot_surface_boxplot(self, col: str, surface_colors: Dict = surface_colors):
         
@@ -578,18 +739,4 @@ class TennisPlayer:
         return fig
 
 
-    def get_stats(self):
-
-        t = (self.selected_matches.groupby('year')
-                .agg(mean_perc1stIn = ('perc1stIn', np.mean),
-                     mean_perc1stWon = ('perc1stWon', np.mean),
-                     mean_perc2ndWon = ('perc2ndWon', np.mean),
-                     mean_percReturnWon = ('percReturnWon', np.mean),
-                     std_perc1stIn = ('perc1stIn', np.std),
-                     std_perc1stWon = ('perc1stWon', np.std),
-                     std_perc2ndWon = ('perc2ndWon', np.std),
-                     std_percReturnWon = ('percReturnWon', np.std))
-                .reset_index()
-        )
-
-        return t
+    
