@@ -133,14 +133,19 @@ scraper_settings = {
         'w_perc1stIn',
         'w_perc1stWon', 
         'w_perc2ndWon',
-        'w_percBpSave', 
+        'w_percBpSaved', 
         'w_SvLost', 
-        'w_bpWon', 
-        'w_percBpWon', 
+        'w_bpTotal',
+        'w_bpConverted', 
+        'w_percBpConverted', 
         'w_percSvLost',
         'w_returnWon', 
+        'l_svpt',
         'w_percReturnWon',
-        'w_percServePointsWon'
+        'w_percServePointsWon',
+        'tb_played',
+        'tb_winner',
+        'decidingSetPlayed'
     ],
 
     'l_cols': [
@@ -182,14 +187,19 @@ scraper_settings = {
         'l_perc1stIn',
         'l_perc1stWon', 
         'l_perc2ndWon',
-        'l_percBpSave', 
+        'l_percBpSaved', 
         'l_SvLost', 
-        'l_bpWon', 
-        'l_percBpWon', 
+        'l_bpTotal',
+        'l_bpConverted', 
+        'l_percBpConverted', 
         'l_percSvLost',
         'l_returnWon', 
+        'w_svpt',
         'l_percReturnWon',
-        'l_percServePointsWon'
+        'l_percServePointsWon',
+        'tb_played',
+        'tb_loser',
+        'decidingSetPlayed'
     ],
 
     'wl_cols': [
@@ -231,14 +241,19 @@ scraper_settings = {
         'perc1stIn',
         'perc1stWon', 
         'perc2ndWon',
-        'percBpSave', 
+        'percBpSaved', 
         'SvLost', 
-        'bpWon', 
-        'percBpWon', 
+        'bpTotal',
+        'bpConverted', 
+        'percBpConverted', 
         'percSvLost',
-        'returnWon', 
+        'returnWon',
+        'returnPlayed',
         'percReturnWon',
-        'percServePointsWon'
+        'percServePointsWon',
+        'tbPlayed',
+        'tbWon',
+        'decidingSetPlayed'
     ]
 
 }

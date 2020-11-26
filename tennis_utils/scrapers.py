@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import dask
 from dask import delayed
-import os, warnings, multiprocessing as mp
+import re, os, warnings, multiprocessing as mp
 
 from datetime import datetime as dt
 from tennis_utils.settings import scraper_settings
@@ -204,34 +204,51 @@ class SackmanScraper:
         ])
         m = m[np.all(masks.T, axis=1)]
                 
+        def tiebreak_counter(row):
+            score = row['score']
+
+            tb_won = sum(1 for m in re.finditer('7-6', score))
+            tb_lost = sum(1 for m in re.finditer('6-7', score))
+
+            row['tb_played'] = tb_won + tb_lost
+            row['tb_winner'] = tb_won
+            row['tb_loser'] = tb_lost
+            row['sets_played'] = len(score.split(' '))
+            row['decidingSetPlayed'] = int(row['sets_played']==row['best_of'])
+            return row
+
+
         self.matches = (m
-                .assign(w_percAce = m['w_ace']/m['w_svpt'])
-                .assign(l_percAce = m['l_ace']/m['l_svpt'])
-                .assign(w_percDf = m['w_df']/m['w_svpt'])
-                .assign(l_percDf = m['l_df']/m['l_svpt'])
-                .assign(w_perc1stIn = m['w_1stIn'] / m['w_svpt'])
-                .assign(l_perc1stIn = m['l_1stIn'] / m['l_svpt'])
-                .assign(w_perc1stWon = m['w_1stWon'] / m['w_1stIn'])
-                .assign(l_perc1stWon = m['l_1stWon'] / m['l_1stIn'])
-                .assign(w_perc2ndWon = m['w_2ndWon'] / (m['w_svpt'] - m['w_1stIn']))
-                .assign(l_perc2ndWon = m['l_2ndWon'] / (m['l_svpt'] - m['l_1stIn']))
-                .assign(w_percBpSave = np.where(m['w_bpFaced']==0, 1, m['w_bpSaved'] / m['w_bpFaced']))
-                .assign(l_percBpSave = np.where(m['l_bpFaced']==0, 1, m['l_bpSaved'] / m['l_bpFaced']))
-                .assign(w_SvLost = m['w_bpFaced'] - m['w_bpSaved'])
-                .assign(l_SvLost = m['l_bpFaced'] - m['l_bpSaved'])
-                .assign(w_bpWon = lambda x: x['l_SvLost'].to_numpy())
-                .assign(l_bpWon = lambda x: x['w_SvLost'].to_numpy())
-                .assign(w_percBpWon = lambda x: np.where(x['l_bpFaced']!=0, x['w_bpWon']/x['l_bpFaced'], np.nan))
-                .assign(l_percBpWon = lambda x: np.where(x['w_bpFaced']!=0, x['l_bpWon']/x['w_bpFaced'], np.nan))
-                .assign(w_percSvLost = lambda x: x['w_SvLost'] / x['w_SvGms'])
-                .assign(l_percSvLost = lambda x: x['l_SvLost'] / x['l_SvGms'])
-                .assign(w_returnWon = m['l_svpt'] - m[['l_1stWon', 'l_2ndWon']].sum(axis=1))
-                .assign(l_returnWon = m['w_svpt'] - m[['w_1stWon', 'w_2ndWon']].sum(axis=1))
-                .assign(w_percReturnWon = lambda x: x['w_returnWon']/x['l_svpt'])
-                .assign(l_percReturnWon = lambda x: x['l_returnWon']/x['w_svpt'])
-                .assign(w_percServePointsWon = m[['w_1stWon', 'w_2ndWon']].sum(axis=1)/m['w_svpt'])
-                .assign(l_percServePointsWon = m[['l_1stWon', 'l_2ndWon']].sum(axis=1)/m['l_svpt'])
-                )
+            .assign(w_percAce = m['w_ace']/m['w_svpt'])
+            .assign(l_percAce = m['l_ace']/m['l_svpt'])
+            .assign(w_percDf = m['w_df']/m['w_svpt'])
+            .assign(l_percDf = m['l_df']/m['l_svpt'])
+            .assign(w_perc1stIn = m['w_1stIn'] / m['w_svpt'])
+            .assign(l_perc1stIn = m['l_1stIn'] / m['l_svpt'])
+            .assign(w_perc1stWon = m['w_1stWon'] / m['w_1stIn'])
+            .assign(l_perc1stWon = m['l_1stWon'] / m['l_1stIn'])
+            .assign(w_perc2ndWon = m['w_2ndWon'] / (m['w_svpt'] - m['w_1stIn']))
+            .assign(l_perc2ndWon = m['l_2ndWon'] / (m['l_svpt'] - m['l_1stIn']))
+            .assign(w_percBpSaved = np.where(m['w_bpFaced']==0, 1, m['w_bpSaved'] / m['w_bpFaced']))
+            .assign(l_percBpSaved = np.where(m['l_bpFaced']==0, 1, m['l_bpSaved'] / m['l_bpFaced']))
+            .assign(w_SvLost = m['w_bpFaced'] - m['w_bpSaved'])
+            .assign(l_SvLost = m['l_bpFaced'] - m['l_bpSaved'])
+            .assign(w_bpTotal = m['l_bpFaced'])
+            .assign(l_bpTotal = m['l_bpFaced'])
+            .assign(w_bpConverted = lambda x: x['l_SvLost'].to_numpy())
+            .assign(l_bpConverted = lambda x: x['w_SvLost'].to_numpy())
+            .assign(w_percBpConverted = lambda x: np.where(x['w_bpTotal']!=0, x['w_bpConverted']/x['w_bpTotal'], np.nan))
+            .assign(l_percBpConverted = lambda x: np.where(x['l_bpTotal']!=0, x['l_bpConverted']/x['l_bpTotal'], np.nan))
+            .assign(w_percSvLost = lambda x: x['w_SvLost'] / x['w_SvGms'])
+            .assign(l_percSvLost = lambda x: x['l_SvLost'] / x['l_SvGms'])
+            .assign(w_returnWon = m['l_svpt'] - m[['l_1stWon', 'l_2ndWon']].sum(axis=1))
+            .assign(l_returnWon = m['w_svpt'] - m[['w_1stWon', 'w_2ndWon']].sum(axis=1))
+            .assign(w_percReturnWon = lambda x: x['w_returnWon']/x['l_svpt'])
+            .assign(l_percReturnWon = lambda x: x['l_returnWon']/x['w_svpt'])
+            .assign(w_percServePointsWon = m[['w_1stWon', 'w_2ndWon']].sum(axis=1)/m['w_svpt'])
+            .assign(l_percServePointsWon = m[['l_1stWon', 'l_2ndWon']].sum(axis=1)/m['l_svpt'])
+            .apply(tiebreak_counter, axis=1)
+            )
 
         self.prepared_matches = True 
         return self
@@ -326,10 +343,15 @@ class SackmanScraper:
                              .sort_values(['tourney_id', 'match_num', 'winner'])
         )
 
-        self.wl_matches = (self.wl_matches.assign(year = pd.to_datetime(self.wl_matches['tourney_date'], format='%Y%m%d').dt.year)
-                                          .assign(tourney_date = pd.to_datetime(self.wl_matches['tourney_date'], format='%Y%m%d').dt.date)
+        self.wl_matches = (self.wl_matches
+                            .assign(year = pd.to_datetime(self.wl_matches['tourney_date'], format='%Y%m%d').dt.year)
+                            .assign(tourney_date = pd.to_datetime(self.wl_matches['tourney_date'], format='%Y%m%d').dt.date)
+                            
         )
 
+        self.wl_matches['decidingSetWon'] = np.where(self.wl_matches[['decidingSetPlayed', 'winner']].prod(axis=1)==1, 1,
+                                                np.where(self.wl_matches['decidingSetPlayed']==0, np.nan, 0)
+                                            )
         return self
 
 

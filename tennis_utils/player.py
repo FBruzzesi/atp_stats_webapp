@@ -131,7 +131,9 @@ class TennisPlayerDataLoader:
             TennisDataLoader instance
         '''
         self.player_name = player_name
-        self.player_matches = player_matches.loc[player_matches['player_name']==player_name]
+        self.player_matches = (player_matches.loc[player_matches['player_name']==player_name]
+                                    .sort_values(['tourney_date', 'match_num'])
+        )
         self.n_matches = self.player_matches.shape[0]
 
 
@@ -458,43 +460,44 @@ class TennisPlayer:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         fig.add_trace(
-                go.Bar(
-                    x=x, y=b1,
-                    name='Matches Won',
-                    marker={'color': 'seagreen'},
-                    text=b1,
-                    textposition='inside',
-                    textfont_size=8,
-                    opacity=0.8
-                ),
+            go.Bar(
+                x=x, y=b1,
+                name='Matches Won',
+                marker={'color': 'seagreen'},
+                text=b1,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
             secondary_y=False
         )
         fig.add_trace(
-                go.Bar(
-                    x=x, y=b2,
-                    name='Matches Lost',
-                    marker={'color': 'indianred'},
-                    text=b2,
-                    textposition='inside',
-                    textfont_size=8,
-                    opacity=0.8
-                ),
+            go.Bar(
+                x=x, y=b2,
+                name='Matches Lost',
+                marker={'color': 'indianred'},
+                text=b2,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
             secondary_y=False
         )
 
 
         fig.add_trace(
-                go.Scatter(
-                    x=x, y=wr,
-                    name='Win Rate',
-                    line={'color':'midnightblue', 'width':2},
-                    mode='lines+text',
-                    text=[str(p) + '%' for i,p in enumerate(np.round(wr, 2))],
-                    textposition='top center',
-                    textfont_size=8
-                ),
+            go.Scatter(
+                x=x, y=wr,
+                name='Win Rate',
+                line={'color':'midnightblue', 'width':2},
+                mode='lines+text',
+                text=[str(p) + '%' for i,p in enumerate(np.round(wr, 2))],
+                textposition='top center',
+                textfont_size=8
+            ),
              secondary_y=True
         )
+        
         fig.update_layout(
             barmode='stack',
             title={'text': 'Win Rate and Played Matches over Time', 'y':0.9, 'x':0.5,
