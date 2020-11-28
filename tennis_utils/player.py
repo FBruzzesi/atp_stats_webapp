@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import dask
 from dask import delayed
+from statsmodels.stats.proportion import proportion_confint
+
 import os, re, warnings, multiprocessing as mp
 
 from datetime import date, datetime as dt
@@ -242,7 +244,6 @@ class TennisPlayer:
             'opponent_rank': opponent_ranks
         }
         
-        self.stats_cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
 
         self.selected_matches = self.select_matches()
         self.n_matches = self.selected_matches.shape[0]
@@ -250,9 +251,10 @@ class TennisPlayer:
 
         self.win_rate = self.selected_matches['result'].value_counts(normalize=True).sort_index()
 
-        self.get_yearly_winrate()
-        self.get_surface_winloss()
+        self.get_overall_stats()
         self.get_yearly_stats()
+        self.get_surface_winloss()
+
             
 
     def __repr__(self):
@@ -297,25 +299,99 @@ class TennisPlayer:
         return rank_df.loc[time_mask]
  
 
-    def get_yearly_winrate(self):
-        '''
-        Calculate winrate percentage and number of matches played each year
+    def get_overall_stats(self):
 
-        Returns
-        -------
-        wr_df: pd.DataFrame
-            winrate percentage and number of matches played
+        m = self.selected_matches
+
+        cols = [
+            'winner', 
+            'ace', 
+            'df', 
+            'svpt', 
+            'firstIn',
+            'firstWon',
+            'secondWon',
+            'returnWon',
+            'returnPlayed',
+            'bpConverted',
+            'bpTotal',
+            'bpSaved',
+            'bpFaced',
+            'tbPlayed',
+            'tbWon',
+            'decidingSetPlayed',
+            'decidingSetWon'
+        ]
+        stats_overall = m[cols].sum()
+
+        self.stats_overall = stats_overall
+        return self
+
+
+    def get_yearly_stats(self):
+        '''
+        Calculate statistics aggregated by year
         '''
         
-        yearly_wr = (self.selected_matches.groupby('year')
-                        .agg(matches_played=('winner', np.size),
-                             matches_won=('winner', np.sum))
-                        .reset_index()
-                        .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
-                        .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
-                    )
+        m = self.selected_matches
 
-        self.yearly_wr = yearly_wr
+        stats_by_year = (m.groupby('year')
+            .agg(
+                matches_played=('winner', np.size),
+                matches_won=('winner', np.sum),
+                ace = ('ace', np.sum),
+                df = ('df', np.sum),
+                svpt = ('svpt', np.sum),
+                firstIn = ('firstIn', np.sum),
+                firstWon = ('firstWon', np.sum),
+                secondIn = ('secondIn', np.sum),
+                secondWon = ('secondWon', np.sum),
+                returnWon = ('returnWon', np.sum),    
+                returnPlayed = ('returnPlayed', np.sum), 
+                bpConverted = ('bpConverted', np.sum),
+                bpTotal = ('bpTotal', np.sum),
+                bpSaved = ('bpSaved', np.sum),
+                bpFaced = ('bpFaced', np.sum),
+                tbPlayed = ('tbPlayed', np.sum),
+                tbWon = ('tbWon', np.sum),
+                decidingSetPlayed = ('decidingSetPlayed', np.sum),
+                decidingSetWon = ('decidingSetWon', np.sum))
+            .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
+            .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
+            .assign(perc_ace = lambda x: x['ace']/x['svpt'])
+            .assign(perc_df = lambda x: x['df']/x['svpt'])
+            .assign(perc_firstIn = lambda x: x['firstIn']/x['svpt'])
+            .assign(perc_firstWon = lambda x: x['firstWon']/x['firstIn'])
+            .assign(perc_secondWon = lambda x: x['secondWon']/x['secondIn'])
+            .assign(perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'])
+            .assign(perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'])
+            .assign(perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'])
+            .assign(tbLost = lambda x: x['tbPlayed'] - x['tbWon'])
+            .assign(perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'])
+            .assign(decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'])
+            .assign(perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed'])
+            .reset_index()
+        )
+          
+
+
+        success_cols = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'bpConverted', 'bpSaved', 'tbWon', 'decidingSetWon']
+        total_cols = ['svpt', 'firstIn', 'secondIn', 'returnPlayed', 'bpTotal', 'bpFaced', 'tbPlayed', 'decidingSetPlayed']
+        
+        lower_df, upper_df = proportion_confint(
+            stats_by_year[success_cols], 
+            stats_by_year[total_cols],
+            method='wilson'
+            )
+
+        lower_df.columns = [f'lower_{c}' for c in success_cols]
+        upper_df.columns = [f'upper_{c}' for c in success_cols]
+
+
+        self.stats_by_year = stats_by_year
+        self.lower_df = lower_df
+        self.upper_df = upper_df
+
         return self
     
     
@@ -334,27 +410,6 @@ class TennisPlayer:
         self.surface_wl = surface_wl
         return self
     
-
-    def get_yearly_stats(self):
-        '''
-        Calculate yearly mean and std value for perc1stIn, perc1stWon, perc2ndWon, percReturnWon
-        '''
-        yearly_stats = (self.selected_matches.groupby('year')
-                .agg(mean_perc1stIn = ('perc1stIn', np.mean),
-                     mean_perc1stWon = ('perc1stWon', np.mean),
-                     mean_perc2ndWon = ('perc2ndWon', np.mean),
-                     mean_percReturnWon = ('percReturnWon', np.mean),
-                     std_perc1stIn = ('perc1stIn', np.std),
-                     std_perc1stWon = ('perc1stWon', np.std),
-                     std_perc2ndWon = ('perc2ndWon', np.std),
-                     std_percReturnWon = ('percReturnWon', np.std)
-                )
-                .reset_index()
-                .fillna(0.01)
-            )
-
-        self.yearly_stats = yearly_stats
-        return self
 
 
     # Plotting Functionalities    
@@ -452,10 +507,10 @@ class TennisPlayer:
 
     def plot_yearly_wr(self):
         
-        x = self.yearly_wr['year']
-        b1 = self.yearly_wr['matches_won'].to_numpy().astype(int)
-        b2 = self.yearly_wr['matches_lost'].to_numpy().astype(int)
-        wr = 100*self.yearly_wr['win_rate'].to_numpy().astype(float)
+        x = self.stats_by_year['year']
+        b1 = self.stats_by_year['matches_won'].to_numpy().astype(int)
+        b2 = self.stats_by_year['matches_lost'].to_numpy().astype(int)
+        wr = 100*self.stats_by_year['win_rate'].to_numpy().astype(float)
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -511,11 +566,13 @@ class TennisPlayer:
         return fig
 
 
+
     def plot_cols_overtime(self):
 
-        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
+        cols = ['firstIn', 'firstWon', 'secondWon', 'returnWon']
 
-        m1, m2 = self.selected_matches, self.yearly_stats
+
+        m1, m2 = self.selected_matches, self.stats_by_year
 
         x1 = m1['tourney_name'] + '(' + m1['year'].astype(str) + '), ' + m1['round']
         txt_suffix = ', ' + m1['opponent_name'].apply(get_player_name) + ': ' + m1['result']
@@ -553,7 +610,7 @@ class TennisPlayer:
 
         for i, col in enumerate(cols):
 
-            y1 = m1[col]
+            y1 = m1[f'perc_{col}']
             txt = y1.astype(float).round(2).astype(str) + txt_suffix
     
             fig.add_trace(
@@ -570,13 +627,10 @@ class TennisPlayer:
                 row=i+1, col=1
             )
 
-
-            mean, std = m2['mean_'+col].to_numpy(), m2['std_'+col].to_numpy()
-            y2, y3 = mean + 2*std, mean-2*std
             
             fig.add_trace(
                 go.Scatter(
-                    x=x2, y=y2,
+                    x=x2, y=self.upper_df[f'upper_{col}'],
                     name='Upper Band',
                     fill=None,
                     mode='lines',
@@ -587,7 +641,7 @@ class TennisPlayer:
     
             fig.add_trace(
                 go.Scatter(
-                    x=x2, y=y3,
+                    x=x2, y=self.lower_df[f'lower_{col}'],
                     name='Lower Band',
                     fill='tonexty', # fill area between trace0 and trace1
                     mode='lines',
@@ -598,7 +652,7 @@ class TennisPlayer:
 
             fig.add_trace(
                 go.Scatter(
-                    x=x2, y=mean,
+                    x=x2, y=m2[f'perc_{col}'],
                     name=f'Mean {col}',
                     mode='lines+markers',
                     marker={'color': colors[i]}
@@ -625,7 +679,7 @@ class TennisPlayer:
 
     def plot_cols_distribution(self):
 
-        cols = ['perc1stIn', 'perc1stWon', 'perc2ndWon', 'percReturnWon']
+        cols = ['firstIn', 'firstWon', 'secondWon', 'returnWon']
         m = self.selected_matches
 
         colors = [
@@ -656,7 +710,7 @@ class TennisPlayer:
 
         for i, col in enumerate(cols):
 
-            trace1 = ff.create_distplot([m[col].to_numpy()], bin_size=0.015,
+            trace1 = ff.create_distplot([m[f'perc_{col}'].to_numpy()], bin_size=0.015,
                         group_labels=[col], show_rug=False, colors=[colors[i]],
                         histnorm='probability'
                     )
@@ -677,7 +731,7 @@ class TennisPlayer:
                 fig.add_trace(
                     go.Box(
                         y=m_temp['surface'],
-                        x=m_temp[col],
+                        x=m_temp[f'perc_{col}'],
                         marker={'color': surface_colors[s]},
                         orientation='h'
                     ),

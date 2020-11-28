@@ -352,6 +352,9 @@ class SackmanScraper:
         self.wl_matches['decidingSetWon'] = np.where(self.wl_matches[['decidingSetPlayed', 'winner']].prod(axis=1)==1, 1,
                                                 np.where(self.wl_matches['decidingSetPlayed']==0, np.nan, 0)
                                             )
+
+        self.wl_matches['secondIn'] = self.wl_matches['svpt'] - self.wl_matches['firstIn'] - self.wl_matches['df']
+        
         return self
 
 
