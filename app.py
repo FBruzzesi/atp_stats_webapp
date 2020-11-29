@@ -251,8 +251,9 @@ def render_player(tab,
 
 
     elif tab == 'sr_ts':
-    
-        fig_cols_overtime = tp.plot_cols_overtime()
+        
+        cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'ace', 'df']
+        fig_cols_overtime = tp.plot_stats(columns=cols_to_plot)
 
         div = html.Div([
             dcc.Graph(
@@ -261,13 +262,13 @@ def render_player(tab,
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-        ], style={'height': '1600px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
     elif tab == 'sr_dist':
 
-
-        fig_cols_distribution = tp.plot_cols_distribution()
+        cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon']
+        fig_cols_distribution = tp.plot_distribution(columns=cols_to_plot)
 
         div = html.Div([
             dcc.Graph(
@@ -276,12 +277,23 @@ def render_player(tab,
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-        ], style={'height': '1600px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
     elif tab == 'pressure':
+        
+        cols_to_plot = ['bpSaved', 'bpConverted', 'tbWon', 'decidingSetWon']
+        fig_pressure = tp.plot_stats(columns=cols_to_plot)
 
-        pass
+        div = html.Div([
+            dcc.Graph(
+                figure=fig_pressure,
+                id='pressure_graph',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'height': '95%'}
+            )
+        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        )
     
     
     return div
