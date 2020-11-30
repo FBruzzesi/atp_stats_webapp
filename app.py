@@ -63,12 +63,13 @@ app.layout = html.Div([
     row3,
     html.Div([
         dcc.Tabs(id='tabs', 
-            value='sr_dist', 
+            value='h2h', 
             children=[
                 dcc.Tab(label='Player Details', value='details'),
-                dcc.Tab(label='Serve & Return - Time Series', value='sr_ts'),
-                dcc.Tab(label='Serve & Return - Distributions', value='sr_dist'),
+                dcc.Tab(label='Serve & Return - Time Series', value='service_return'),
+                dcc.Tab(label='Serve & Return - Distributions', value='service_return_distribution'),
                 dcc.Tab(label='Under Pressure', value='pressure'),
+                dcc.Tab(label='H2H', value='h2h'),
             ], 
             colors={
                 'border': 'white',
@@ -250,30 +251,30 @@ def render_player(tab,
 
 
 
-    elif tab == 'sr_ts':
+    elif tab == 'service_return':
         
         cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'ace', 'df']
-        fig_cols_overtime = tp.plot_stats(columns=cols_to_plot)
+        fig_service_return = tp.plot_stats(columns=cols_to_plot)
 
         div = html.Div([
             dcc.Graph(
-                figure=fig_cols_overtime,
-                id='col_timeseries',
+                figure=fig_service_return,
+                id='graph_service_return',
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
         ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
-    elif tab == 'sr_dist':
+    elif tab == 'service_return_distribution':
 
         cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon']
-        fig_cols_distribution = tp.plot_distribution(columns=cols_to_plot)
+        fig_distribution = tp.plot_distribution(columns=cols_to_plot)
 
         div = html.Div([
             dcc.Graph(
-                figure=fig_cols_distribution,
-                id='col_distrib',
+                figure=fig_distribution,
+                id='graph_distribution',
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
@@ -295,6 +296,51 @@ def render_player(tab,
         ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
     
+    elif tab == 'h2h':
+
+        fig_h2h = tp.plot_h2h()
+
+        col_mapping = {
+            'opponent_name': 'Opponent', 
+            'matches_played': 'Matches Played', 
+            'matches_won': 'Matches Won', 
+            'win_rate': 'Winrate',
+            'perc_ace': '% Aces',
+            'perc_df': '% Double Faults',
+            'perc_firstIn': '% First In',
+            'perc_firstWon': '% First Won', 
+            'perc_secondWon': '% Second Won', 
+            'perc_returnWon': '% Return Won', 
+            'perc_bpConverted': '% BP Converted',
+            'perc_bpSaved': '% BP Saved', 
+            'perc_tbWon': '% TB Won',
+            'perc_decidingSetWon': '% Deciding Sets Won'
+        }
+
+        h2h = tp.h2h.round(2)[col_mapping.keys()].rename(columns = col_mapping)
+
+
+        dt = dash_table.DataTable(
+            data=h2h.to_dict('records'),
+            columns=[{'id': c, 'name': c} for c in h2h.columns],
+            sort_action='native',
+            filter_action='native',
+            style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
+            style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
+            page_size=20
+        )
+
+        div = html.Div([
+            dcc.Graph(
+                figure=fig_h2h,
+                id='h2h_graph',
+                hoverData={'points': [{'customdata': 'Japan'}]},
+                style={'height': '95%'}
+            ),
+            html.Div(dt, style={'margin-top': '2%', 'margin-left': '5%'})
+        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        )
+
     
     return div
 
@@ -302,48 +348,6 @@ def render_player(tab,
     
     
 
-'''
-@app.callback(
-    [
-    ],
-    [Input(component_id='player_name', component_property='value'),
-     Input(component_id='column', component_property='value'),
-     
-     Input(component_id='tourney_level', component_property='value'),
-     Input(component_id='surface', component_property='value'),
-     Input(component_id='opponents', component_property='value'),]
-)
-def stats_graphs(player_name, col, period_interval, tourney_levels, surfaces, opponents):
-    
-    
-    
-    matches = mdata[mdata['name'] == player_name]
-    pdetails = pdata[pdata['name'] == player_name]
-
-    tp = RenderTennisPlayer(player_name=player_name, matches=matches, player_details=pdetails, 
-                            
-                            surfaces=surfaces,
-                            tourney_levels=tourney_levels, 
-                            opponents=opponents
-                           )
-        
-    
-    color = colors[0]
-    
-    
-    fig_win_rate = tp.plot_yearly_wr()
-    fig_rank = tp.plot_rank()
-    fig_surface_wl = tp.plot_surface_wl()
-    fig_col_overtime = tp.plot_col_overtime(col, color)
-    fig_surface_boxplot = tp.plot_surface_boxplot(col)
-    fig_col_distplot = tp.plot_col_distplot(col, colors)
-    
-    
-    return fig_rank, fig_win_rate, fig_surface_wl, fig_col_overtime, fig_surface_boxplot, fig_col_distplot #, generate_table(tp.player_details)
-'''
-
-#app.run_server(mode="inline")
-#app.run_server(mode='jupyterlab')
 app.run_server(debug=True)
 
 

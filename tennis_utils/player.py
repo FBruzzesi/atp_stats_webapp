@@ -256,6 +256,7 @@ class TennisPlayer:
         self.get_overall_stats()
         self.get_yearly_stats()
         self.get_surface_winloss()
+        self.get_h2h()
 
         self.colors = ['rgb(33,113,181)', 'rgb(217,71,1)', 'rgb(81, 178, 124)', 'rgb(235, 127, 134)'] * 2
             
@@ -395,6 +396,53 @@ class TennisPlayer:
         self.surface_wl = surface_wl
         return self
     
+
+    def get_h2h(self):
+
+        m = self.selected_matches
+        h2h = (m.groupby('opponent_name')
+            .agg(
+                matches_played=('winner', np.size),
+                matches_won=('winner', np.sum),
+                ace = ('ace', np.sum),
+                df = ('df', np.sum),
+                svpt = ('svpt', np.sum),
+                firstIn = ('firstIn', np.sum),
+                firstWon = ('firstWon', np.sum),
+                secondIn = ('secondIn', np.sum),
+                secondWon = ('secondWon', np.sum),
+                returnWon = ('returnWon', np.sum),    
+                returnPlayed = ('returnPlayed', np.sum), 
+                bpConverted = ('bpConverted', np.sum),
+                bpTotal = ('bpTotal', np.sum),
+                bpSaved = ('bpSaved', np.sum),
+                bpFaced = ('bpFaced', np.sum),
+                tbPlayed = ('tbPlayed', np.sum),
+                tbWon = ('tbWon', np.sum),
+                decidingSetPlayed = ('decidingSetPlayed', np.sum),
+                decidingSetWon = ('decidingSetWon', np.sum))
+            .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
+            .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
+            .assign(perc_ace = lambda x: x['ace']/x['svpt'])
+            .assign(perc_df = lambda x: x['df']/x['svpt'])
+            .assign(perc_firstIn = lambda x: x['firstIn']/x['svpt'])
+            .assign(perc_firstWon = lambda x: x['firstWon']/x['firstIn'])
+            .assign(perc_secondWon = lambda x: x['secondWon']/x['secondIn'])
+            .assign(perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'])
+            .assign(perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'])
+            .assign(perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'])
+            .assign(tbLost = lambda x: x['tbPlayed'] - x['tbWon'])
+            .assign(perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'])
+            .assign(decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'])
+            .assign(perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed'])
+            .sort_values('matches_played', ascending=False)
+            .reset_index()
+        )
+
+        self.h2h = h2h
+        return self
+
+
 
 
     # Plotting Functionalities    
@@ -723,5 +771,67 @@ class TennisPlayer:
             f'xaxis{n_rows*n_cols}': {'title': 'Frequency'},
             **{f'yaxis{2*r-1}': {'title': 'Percentage'} for r in range(1, n_rows+1)}
         })
+
+        return fig
+
+
+    def plot_h2h(self):
+
+        h2h = self.h2h.iloc[:15]
+
+        x = h2h['opponent_name']
+        b1 = h2h['matches_won']
+        b2 = h2h['matches_played'] - h2h['matches_won']
+        wr = 100*h2h['win_rate']
+
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+        fig.add_trace(
+            go.Bar(
+                x=x, y=b1,
+                name='Matches Won',
+                marker={'color': 'seagreen'},
+                text=b1,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False
+        )
+        fig.add_trace(
+            go.Bar(
+                x=x, y=b2,
+                name='Matches Lost',
+                marker={'color': 'indianred'},
+                text=b2,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False
+        )
+
+
+        fig.add_trace(
+            go.Scatter(
+                x=x, y=wr,
+                name='Win Rate',
+                line={'color':'midnightblue', 'width':2},
+                mode='markers+text',
+                text=[str(p) + '%' for i,p in enumerate(np.round(wr, 2))],
+                textposition='top center',
+                textfont_size=8
+            ),
+             secondary_y=True
+        )
+        
+        fig.update_layout(
+            barmode='stack',
+            title={'text': 'Win Rate with most played opponents', 'y':0.9, 'x':0.5,
+                   'xanchor': 'center', 'yanchor': 'top'},
+            xaxis={'type':'category', 'title': 'Opponent name'},
+            yaxis={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
+            yaxis2={'range':[0, 110], 'title': 'Win Rate (%)'},
+        )
 
         return fig
