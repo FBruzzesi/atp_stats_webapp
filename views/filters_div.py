@@ -110,7 +110,7 @@ def get_filters_div(matches_df):
             ], 
             style={'width': '50%', 'display': 'inline-block', 'margin-left': '1%'}
         )
-    ],style={'borderBottom': 'thin lightgrey solid', 'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px'}
+    ],style={'borderBottom': 'thin lightgrey solid', 'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px 35px'}
     )
 
 

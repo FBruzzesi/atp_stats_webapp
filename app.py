@@ -26,7 +26,7 @@ tdl = TennisDataLoader(data_path+'/matches.parquet', data_path+'/players.parquet
 matches_df, players_df = tdl.matches, tdl.players
 
 
-row1, row2, row3 = get_filters_div(matches_df)
+# row1, row2, row3 = get_filters_div(matches_df)
 
 
 
@@ -58,9 +58,7 @@ app.layout = html.Div([
         html.Div(id='selected_player_rank', style={'display': 'none'})
         ], style={'display': 'none'}
     ),
-    row1,
-    row2,
-    row3,
+    *get_filters_div(matches_df),
     html.Div([
         dcc.Tabs(id='tabs', 
             value='h2h', 
@@ -75,7 +73,7 @@ app.layout = html.Div([
                 'border': 'white',
                 'primary': 'gold',
                 'background': 'cornsilk'
-                }
+                },
         ),
         html.Div(id='tab-content')
     ]),

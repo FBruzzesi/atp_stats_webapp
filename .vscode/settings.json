@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\fbruz\\Anaconda3\\python.exe",
+    "python.pythonPath": "/home/fbruzzesi/miniconda/envs/tennis_env/bin/python",
     "jupyter.jupyterServerType": "local"
 }
