@@ -183,9 +183,10 @@ class TennisPlayerDataLoader:
                                         .assign(most_rank_pts = self.player_rank['rank_points'].max())
         )
 
+        cols = ['player_name', 'best_rank', 'country_code', 'birthdate', 'age', 'hand', 'height']
+        player_details = player_details[cols].T.reset_index()
+        #player_details = pd.Series(player_details[cols].to_numpy().squeeze(), index=cols)
         return player_details
-
-
 
 
 
@@ -314,6 +315,14 @@ class TennisPlayer:
         
         self.success_overall = success_overall
         self.total_overall = total_overall
+
+        self.success_overall['success_won'] = m['winner'].sum()
+        self.total_overall['total_won'] = m.shape[0]
+
+        self.perc_overall = pd.Series(100*self.success_overall.to_numpy()/self.total_overall.to_numpy(),
+                        index=['perc_' + c.split('_')[-1] for c in self.success_overall.index]
+                        )
+
         return self
 
 
@@ -444,8 +453,147 @@ class TennisPlayer:
 
 
 
+class TennisPlayerRenderer(TennisPlayer):
 
-    # Plotting Functionalities    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+    def plot_summary(self):
+
+        fig = make_subplots(
+                cols=2, rows=2,
+                specs=[[{'colspan': 2, 'secondary_y': True}, None],
+                       [{'secondary_y': True}, {'type': 'polar'}]],
+                shared_xaxes=True,
+                subplot_titles=['Rank and Rank points by Week', 
+                                'Win Rate and Played Matches by Year',
+                                'Player Summary Statistics'],
+                vertical_spacing=0.1,
+                horizontal_spacing=0.15,
+                column_widths=[0.8, 0.2]
+        )
+
+        # Add Rank over time
+        x1 = self.player_rank['tourney_date'].to_numpy()
+        y1 = self.player_rank['rank'].to_numpy()
+        y2 = self.player_rank['rank_points'].to_numpy()
+        
+        fig.add_trace(
+            go.Scatter(
+                x=x1, y=y1,
+                name='Rank',
+                marker={'color': 'goldenrod'},
+                mode='lines+text',
+                text=[p if i%5==0 else None for i, p in enumerate(y1)],
+                textposition='top center',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False,
+            row=1, col=1
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=x1, y=y2,
+                name='Rank Points',
+                line={'color':'midnightblue', 'width':2.5},
+                mode='lines+text',
+                text=[p if i%5==0 else None for i, p in enumerate(y2)],
+                textposition='top center',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=True,
+            row=1, col=1
+        )
+        
+
+        # Add Winrate over time 
+
+        x2 = self.stats_by_year['year']
+        b1 = self.stats_by_year['matches_won'].to_numpy().astype(int)
+        b2 = self.stats_by_year['matches_lost'].to_numpy().astype(int)
+        wr = 100*self.stats_by_year['win_rate'].to_numpy().astype(float)
+
+        fig.add_trace(
+            go.Bar(
+                x=x2, y=b1,
+                name='Matches Won',
+                marker={'color': 'seagreen'},
+                text=b1,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False,
+            row=2, col=1
+        )
+        fig.add_trace(
+            go.Bar(
+                x=x2, y=b2,
+                name='Matches Lost',
+                marker={'color': 'indianred'},
+                text=b2,
+                textposition='inside',
+                textfont_size=8,
+                opacity=0.8
+            ),
+            secondary_y=False,
+            row=2, col=1
+        )
+
+
+        fig.add_trace(
+            go.Scatter(
+                x=x2, y=wr,
+                name='Win Rate',
+                line={'color':'midnightblue', 'width':2},
+                mode='lines+text',
+                text=[str(p) + '%' for i,p in enumerate(np.round(wr, 2))],
+                textposition='top center',
+                textfont_size=8
+            ),
+             secondary_y=True,
+            row=2, col=1
+        )
+
+        # Plot Radar
+
+        
+        s = self.perc_overall.drop(['perc_ace', 'perc_df'])
+
+        fig.add_trace(
+            go.Scatterpolar(
+                r=s.to_numpy()[::-1],
+                theta=[ '%' + c.split('_')[-1] for c in s.index][::-1],
+                fill='toself',
+                name='Stat %',
+                marker={'color': 'orangered'},
+            ),
+            row=2, col=2
+        )
+
+
+        fig.update_layout(
+            height=1000,
+            showlegend=False,
+            barmode='stack',
+            xaxis={'title': 'Year-Month'},
+            yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
+            yaxis2={'title': 'Rank Points', 'range': [0, np.max(y2)*1.1]},
+            xaxis2={'title': 'Year'},
+            yaxis3={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
+            yaxis4={'range':[0, 105], 'title': 'Win Rate (%)'},
+            polar={'radialaxis': {'range':[0,100]}}
+
+        )
+
+
+
+        return fig
+
 
     def plot_rank(self):
         
@@ -602,9 +750,7 @@ class TennisPlayer:
 
     
 
-    def plot_stats(self,
-                   columns
-                   ):
+    def plot_stats(self, columns):
      
         success_overall = self.success_overall 
         total_overall = self.total_overall

@@ -13,7 +13,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
-from tennis_utils.player import TennisPlayer, TennisDataLoader, TennisPlayerDataLoader
+from tennis_utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader
 from tennis_utils.settings import tennis_player_settings
 from views.filters_div import get_filters_div
 
@@ -31,6 +31,7 @@ matches_df, players_df = tdl.matches, tdl.players
 
 
 tourney_level_map = {
+    
     'A': 'Atp 500',
     'M': 'Master 1000',
     'G': 'Grand Slam',
@@ -61,9 +62,9 @@ app.layout = html.Div([
     *get_filters_div(matches_df),
     html.Div([
         dcc.Tabs(id='tabs', 
-            value='h2h', 
+            value='summary', 
             children=[
-                dcc.Tab(label='Player Details', value='details'),
+                dcc.Tab(label='Player Summary', value='summary'),
                 dcc.Tab(label='Serve & Return - Time Series', value='service_return'),
                 dcc.Tab(label='Serve & Return - Distributions', value='service_return_distribution'),
                 dcc.Tab(label='Under Pressure', value='pressure'),
@@ -195,7 +196,7 @@ def render_player(tab,
     y1, y2 = time_period
     time_start, time_end = date(y1, 1, 1), date(y2, 12, 31)
 
-    tp = TennisPlayer(
+    tp = TennisPlayerRenderer(
             player_name = player_name,
             player_matches = pd.read_json(player_matches),
             player_rank = pd.read_json(player_rank),
@@ -211,41 +212,67 @@ def render_player(tab,
     )
     
 
-    if tab == 'details':
+    if tab == 'summary':
 
         # Generate figures
-        fig_rank = tp.plot_rank()
-        fig_yearly_winrate = tp.plot_yearly_wr()
-        fig_winrate = tp.plot_winrate()
-        fig_surface_wl = tp.plot_surface_wl()
+        fig_summary = tp.plot_summary()
+
+        details_mapping = {
+            'player_name': 'Player Name',
+            'best_rank': 'Best Rank',
+            'country_code': 'Nationality',
+            'birthdate': 'Birthdate',
+            'age': 'Age', 
+            'hand':'Hand',
+            'height':'Height'
+        }
+        details = tp.player_details
+        details.columns=['info', 'value']
+        details['info'] = details['info'].map(details_mapping)
+
+        stats = pd.DataFrame(data={
+                    'info': tp.perc_overall.index,
+                    'value': np.round(tp.perc_overall.to_numpy(),2)
+                })
+        stats['info'] = [ '% ' + c.split('_')[-1].capitalize() for c in stats['info']]
+
+        dt_details = dash_table.DataTable(
+            data=details.to_dict('records'),
+            columns=[{'id': c, 'name': c} for c in details.columns],
+            style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
+            style_header = {'display': 'none'}
+        )
+
+        dt_stats = dash_table.DataTable(
+            data=stats.to_dict('records'),
+            columns=[{'id': c, 'name': c} for c in stats.columns],
+            sort_action='native',
+            style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
+            style_header = {'display': 'none'}
+        )
+
 
         # Create html Div
         div = html.Div([
             dcc.Graph(
-                figure=fig_rank,
-                id='rnk',
+                figure=fig_summary,
+                id='graph_summary',
                 hoverData={'points': [{'customdata': 'Japan'}]}
             ),
-            dcc.Graph(
-                figure=fig_yearly_winrate,
-                id='yearly_winrate',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'display':'inline-block', 'width':'75%'}
-            ),
-            dcc.Graph(
-                figure=fig_winrate,
-                id='winrate',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'display':'inline-block', 'width':'25%'}
-            ),
-            dcc.Graph(
-                figure=fig_surface_wl,
-                id='winrate_by_surface',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-            ),
-            
+            html.Div([
+                html.Div([
+                    html.H3('Player Details', style={'text-align': 'center'}),
+                    dt_details
+                    ], style={'margin-top': '2%', 'margin-left': '5%', 'width':'30%', 'display': 'inline-block'}),
+                 html.Div([
+                     html.H3('Player Statistics', style={'text-align': 'center'}),
+                     dt_stats
+                    ], style={'margin-top': '2%', 'margin-left': '30%', 'width':'30%', 'display': 'inline-block'})
+                ])
         ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
+
+
 
 
 
@@ -321,8 +348,7 @@ def render_player(tab,
         dt = dash_table.DataTable(
             data=h2h.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in h2h.columns],
-            sort_action='native',
-            filter_action='native',
+            sort_action='native', filter_action='native',
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
             page_size=20
