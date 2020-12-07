@@ -560,8 +560,6 @@ class TennisPlayerRenderer(TennisPlayer):
         )
 
         # Plot Radar
-
-        
         s = self.perc_overall.drop(['perc_ace', 'perc_df'])
 
         fig.add_trace(
@@ -578,7 +576,10 @@ class TennisPlayerRenderer(TennisPlayer):
 
         fig.update_layout(
             height=1000,
-            showlegend=False,
+            legend={'font':{'size':10}, 
+                    'orientation':'h', 
+                    'yanchor': 'bottom', 'y': 1.05, 'xanchor': 'right', 'x': 1
+                    },
             barmode='stack',
             xaxis={'title': 'Year-Month'},
             yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
@@ -593,77 +594,6 @@ class TennisPlayerRenderer(TennisPlayer):
 
 
         return fig
-
-
-    def plot_rank(self):
-        
-        x = self.player_rank['tourney_date'].to_numpy()
-        y1 = self.player_rank['rank'].to_numpy()
-        y2 = self.player_rank['rank_points'].to_numpy()
-        
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=y1,
-                name='Rank',
-                marker={'color': 'goldenrod'},
-                mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y1)],
-                textposition='top center',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=False
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=y2,
-                name='Rank Points',
-                line={'color':'midnightblue', 'width':2.5},
-                mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y2)],
-                textposition='top center',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=True
-        )
-        
-        fig.update_layout(
-            barmode='stack',
-            title={'text': 'Rank and Points over Time', 'y':0.9, 'x':0.5,
-                   'xanchor': 'center', 'yanchor': 'top'},
-            yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
-            yaxis2={'title': 'Rank Points', 'range': [0, np.max(y2)*1.1]},
-        )
-        
-        return fig
-    
-
-
-    def plot_winrate(self):
-
-        fig = go.Figure(
-            go.Pie(
-                labels=self.win_rate.index,
-                values=self.win_rate.to_numpy(),
-                marker={'colors': ['indianred', 'seagreen'],
-                        'line': {'color':'white', 'width':1}
-                }
-            )
-        )
-
-        fig.update_layout(
-            title={'text': 'Overall Win Rate (%)', 'y':0.9, 'x':0.5,
-                   'xanchor': 'center', 'yanchor': 'top'},
-            legend={'x': .95}
-
-        )
-        return fig
-
-
 
 
     def plot_surface_wl(self, surface_colors: Dict = surface_colors):
@@ -685,75 +615,11 @@ class TennisPlayerRenderer(TennisPlayer):
         
         return fig
     
-
-    def plot_yearly_wr(self):
-        
-        x = self.stats_by_year['year']
-        b1 = self.stats_by_year['matches_won'].to_numpy().astype(int)
-        b2 = self.stats_by_year['matches_lost'].to_numpy().astype(int)
-        wr = 100*self.stats_by_year['win_rate'].to_numpy().astype(float)
-
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-        fig.add_trace(
-            go.Bar(
-                x=x, y=b1,
-                name='Matches Won',
-                marker={'color': 'seagreen'},
-                text=b1,
-                textposition='inside',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=False
-        )
-        fig.add_trace(
-            go.Bar(
-                x=x, y=b2,
-                name='Matches Lost',
-                marker={'color': 'indianred'},
-                text=b2,
-                textposition='inside',
-                textfont_size=8,
-                opacity=0.8
-            ),
-            secondary_y=False
-        )
-
-
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=wr,
-                name='Win Rate',
-                line={'color':'midnightblue', 'width':2},
-                mode='lines+text',
-                text=[str(p) + '%' for i,p in enumerate(np.round(wr, 2))],
-                textposition='top center',
-                textfont_size=8
-            ),
-             secondary_y=True
-        )
-        
-        fig.update_layout(
-            barmode='stack',
-            title={'text': 'Win Rate and Played Matches over Time', 'y':0.9, 'x':0.5,
-                   'xanchor': 'center', 'yanchor': 'top'},
-            xaxis={'type':'category'},
-            yaxis={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
-            yaxis2={'range':[0, 105], 'title': 'Win Rate (%)'},
-            legend={'x': .95}
-        )
-
-        return fig
-
-
-
     
 
-    def plot_stats(self, columns):
-     
-        success_overall = self.success_overall 
-        total_overall = self.total_overall
+    def plot_serve_return_stats(self, columns):
+        
+        m = self.selected_matches
         stats_by_year = self.stats_by_year 
         upper_df = self.upper_df 
         lower_df = self.lower_df 
@@ -762,19 +628,21 @@ class TennisPlayerRenderer(TennisPlayer):
 
 
         n_cols, n_rows = 2, len(columns)
-        specs = [[{}, {'type':'pie'}]] * n_rows
-        subplot_titles=[[f'Percentage {c} and 95% CI by year', f'Percentage {c} overall'] for c in columns]
+        specs = [[{}, {}]] * n_rows
+        subplot_titles=[[f'Percentage {c[0].upper() + c[1:]} and 95% CI by year', 
+                         f'Single Match Perc. {c[0].upper() + c[1:]} Distribution'] 
+                        for c in columns]
 
 
         fig = make_subplots(
                 cols=n_cols,
                 rows=n_rows,
                 specs=specs,
-                shared_xaxes=True,
+                shared_xaxes=False,
                 vertical_spacing=0.05,
                 horizontal_spacing=0.05,
                 subplot_titles=sum(subplot_titles, []),
-                column_widths=[0.8, 0.2]
+                column_widths=[0.7, 0.3]
         )
 
 
@@ -784,29 +652,27 @@ class TennisPlayerRenderer(TennisPlayer):
 
             fig.add_trace(
                 go.Scatter(
-                    x=x, y=upper_df[f'upper_{col}'],
+                    x=x, y=100*upper_df[f'upper_{col}'],
                     name=f'{col} upper bound',
                     fill=None, mode='lines', 
                     line=dict(color='darksalmon', width=1)
                 ),
                 row=i+1, col=1,
-                secondary_y=False
             )
 
             fig.add_trace(
                 go.Scatter(
-                    x=x, y=lower_df[f'lower_{col}'],
+                    x=x, y=100*lower_df[f'lower_{col}'],
                     name=f'{col} lower bound',
                     fill='tonexty', mode='lines',
                     line=dict(color='darksalmon', width=1)
                 ),
                 row=i+1, col=1,
-                secondary_y=False
             )
 
             fig.add_trace(
                 go.Scatter(
-                    x=x, y=stats_by_year[f'perc_{col}'],
+                    x=x, y=100*stats_by_year[f'perc_{col}'],
                     textposition='top center',
                     name=col,
                     mode='lines+markers',
@@ -814,15 +680,21 @@ class TennisPlayerRenderer(TennisPlayer):
                     marker={'color': colors[i]},
                 ),
                 row=i+1, col=1,
-                secondary_y=False
+            )
+
+            tmp_data = 100*m[f'perc_{col}'].dropna().to_numpy()
+            hist, kde = ff.create_distplot([tmp_data], bin_size=(tmp_data.max() - tmp_data.min())/50,
+                            group_labels=[col], show_rug=False, colors=[colors[i]],
+                            histnorm='probability',
+                        )['data']
+
+            fig.add_trace(
+                hist,
+                row=i+1, col=2
             )
 
             fig.add_trace(
-                go.Pie(
-                    values=[success_overall[f'success_{col}'], total_overall[f'total_{col}'] - success_overall[f'success_{col}']],
-                    marker={'colors': ['seagreen', 'indianred'],
-                                'line': {'color':'white', 'width':1}}
-                ),
+                kde,
                 row=i+1, col=2
             )
 
@@ -832,8 +704,10 @@ class TennisPlayerRenderer(TennisPlayer):
             'showlegend': False,
             'xaxis': {'title': 'Year'},
             'yaxis': {'title': 'Percentage'},
-            **{f'xaxis{i}': {'title': 'Year'} for i in range(1, n_rows+1)},
-            **{f'yaxis{i}': {'title': 'Percentage'} for i in range(1, n_rows+1)},
+            **{f'xaxis{2*i+1}': {'title': 'Year'} for i in range(1, n_rows+1)},
+            **{f'xaxis{2*i}': {'title': 'Percentage'} for i in range(1, n_rows+1)},
+            **{f'yaxis{2*i+1}': {'title': 'Percentage'} for i in range(1, n_rows+1)},
+            **{f'yaxis{2*i}': {'title': 'Frequency', 'side': 'right'} for i in range(1, n_rows+1)},
         })
 
         return fig
@@ -842,9 +716,7 @@ class TennisPlayerRenderer(TennisPlayer):
 
 
 
-    def plot_distribution(self,
-                        columns, 
-                        ):
+    def plot_boxplot_distribution(self, columns):
 
 
         m = self.selected_matches
@@ -880,7 +752,6 @@ class TennisPlayerRenderer(TennisPlayer):
                 row=i+1, col=1  
             )
 
-
             hist, kde = ff.create_distplot([m[f'perc_{col}'].to_numpy()], bin_size=0.015,
                             group_labels=[col], show_rug=False, colors=[colors[i]],
                             histnorm='probability',
@@ -899,7 +770,8 @@ class TennisPlayerRenderer(TennisPlayer):
                 marker_color=colors[i]
             )
 
-            fig.add_trace(hist_,
+            fig.add_trace(
+                hist_,
                 row=i+1, col=2
             )
 
@@ -908,14 +780,85 @@ class TennisPlayerRenderer(TennisPlayer):
                 row=i+1, col=2
             )
 
-
-
         # Layout
         fig.update_layout({
             'showlegend': False,
             f'xaxis{n_rows*n_cols-1}': {'title': 'Year'},
             f'xaxis{n_rows*n_cols}': {'title': 'Frequency'},
             **{f'yaxis{2*r-1}': {'title': 'Percentage'} for r in range(1, n_rows+1)}
+        })
+
+        return fig
+
+
+    def plot_under_pressure(self, columns):
+        
+        #m = self.selected_matches
+        stats_by_year = self.stats_by_year 
+        upper_df = self.upper_df 
+        lower_df = self.lower_df 
+        
+        colors = self.colors
+
+        n_cols, n_rows = 1, len(columns)
+        specs = [[{}]] * n_rows
+        subplot_titles=[f'Percentage {c[0].upper() + c[1:]} and 95% CI by year' for c in columns]
+
+        fig = make_subplots(
+                cols=n_cols,
+                rows=n_rows,
+                specs=specs,
+                shared_xaxes=True,
+                vertical_spacing=0.1,
+                horizontal_spacing=0.05,
+                subplot_titles=subplot_titles
+        )
+
+
+        x = stats_by_year['year']
+        
+        for i, col in enumerate(columns):
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x, y=100*upper_df[f'upper_{col}'],
+                    name=f'{col} upper bound',
+                    fill=None, mode='lines', 
+                    line=dict(color='darksalmon', width=1)
+                ),
+                row=i+1, col=1,
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x, y=100*lower_df[f'lower_{col}'],
+                    name=f'{col} lower bound',
+                    fill='tonexty', mode='lines',
+                    line=dict(color='darksalmon', width=1)
+                ),
+                row=i+1, col=1,
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=x, y=100*stats_by_year[f'perc_{col}'],
+                    textposition='top center',
+                    name=col,
+                    mode='lines+markers',
+                    connectgaps=True,
+                    marker={'color': colors[i]},
+                ),
+                row=i+1, col=1,
+            )
+
+
+        # Layout
+        fig.update_layout({
+            'showlegend': False,
+            'xaxis': {'title': 'Year'},
+            'yaxis': {'title': 'Percentage'},
+            **{f'xaxis{i}': {'title': 'Year'} for i in range(1, n_rows+1)},
+            **{f'yaxis{i}': {'title': 'Percentage'} for i in range(1, n_rows+1)},
         })
 
         return fig
@@ -973,6 +916,10 @@ class TennisPlayerRenderer(TennisPlayer):
         
         fig.update_layout(
             barmode='stack',
+            legend={'font':{'size':10}, 
+                    'orientation':'h', 
+                    'yanchor': 'bottom', 'y': 1.05, 'xanchor': 'right', 'x': 1
+                    },
             title={'text': 'Win Rate with most played opponents', 'y':0.9, 'x':0.5,
                    'xanchor': 'center', 'yanchor': 'top'},
             xaxis={'type':'category', 'title': 'Opponent name'},

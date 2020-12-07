@@ -26,8 +26,8 @@ tdl = TennisDataLoader(data_path+'/matches.parquet', data_path+'/players.parquet
 matches_df, players_df = tdl.matches, tdl.players
 
 
-# row1, row2, row3 = get_filters_div(matches_df)
-
+serve_return_cols = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'ace', 'df']
+under_pressure_cols = ['bpSaved', 'bpConverted', 'tbWon', 'decidingSetWon']
 
 
 tourney_level_map = {
@@ -41,14 +41,42 @@ tourney_level_map = {
 }
 
 
-
+header=html.Div([
+    html.Div(
+        html.H1(
+            children='ATP Statistics', # Title line
+            style={'textAlign': 'center'},
+            className='content-container'
+            )
+    )],
+    className='header',
+)
 
 # Initialize App and define its layout
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+markdown = """
+**Data Attribution:** The data used here is (part of) the amazing dataset created by **Jeff Sackmann** 
+(Check out his [github repository](https://github.com/JeffSackmann/tennis_atp))
 
+**Data Usage: ** In particular, I am using atp singles from 2000 to 2020 data, therefore you will not find any match before 2000 nor after the first part of the 2020 season.
+I am currently working towards a solution for such inconvenience.
+
+**Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use.  Therefore I am sure it is possible to find bugs and non-working interactions. 
+If you find any or just want to get in touch with me, please feel free to reach out by [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/)
+
+**How it Works:** Down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
+
+- _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
+- _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
+- _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
+- _H2H_: Shows winrate againsts most played opponents.
+"""
 app.layout = html.Div([
+    header,
+    html.Hr(style={'width': '96%', 'margin-top': '1%', 'margin-bottom': '1%'}),
+    dcc.Markdown(markdown, style={'margin-left': '3%'}),
+    html.Hr(style={'width': '96%', 'margin-top': '1%', 'margin-bottom': '1%'}),
     # Hidden Div Block
     html.Div([
         # Store selected player matches data
@@ -65,9 +93,8 @@ app.layout = html.Div([
             value='summary', 
             children=[
                 dcc.Tab(label='Player Summary', value='summary'),
-                dcc.Tab(label='Serve & Return - Time Series', value='service_return'),
-                dcc.Tab(label='Serve & Return - Distributions', value='service_return_distribution'),
-                dcc.Tab(label='Under Pressure', value='pressure'),
+                dcc.Tab(label='Serve & Return', value='serve_return'),
+                dcc.Tab(label='Under Pressure', value='under_pressure'),
                 dcc.Tab(label='H2H', value='h2h'),
             ], 
             colors={
@@ -214,9 +241,10 @@ def render_player(tab,
 
     if tab == 'summary':
 
-        # Generate figures
+        # Generate summary graph
         fig_summary = tp.plot_summary()
 
+        # Generate datatables
         details_mapping = {
             'player_name': 'Player Name',
             'best_rank': 'Best Rank',
@@ -236,9 +264,11 @@ def render_player(tab,
                 })
         stats['info'] = [ '% ' + c.split('_')[-1].capitalize() for c in stats['info']]
 
+
         dt_details = dash_table.DataTable(
             data=details.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in details.columns],
+            style_cell={'textAlign': 'left'},
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'}
         )
@@ -247,6 +277,7 @@ def render_player(tab,
             data=stats.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in stats.columns],
             sort_action='native',
+            style_cell_conditional=[{'if': {'column_id': 'info'}, 'textAlign': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'}
         )
@@ -267,7 +298,7 @@ def render_player(tab,
                  html.Div([
                      html.H3('Player Statistics', style={'text-align': 'center'}),
                      dt_stats
-                    ], style={'margin-top': '2%', 'margin-left': '30%', 'width':'30%', 'display': 'inline-block'})
+                    ], style={'margin-top': '2%', 'margin-left': '35%', 'width':'25%', 'display': 'inline-block'})
                 ])
         ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
@@ -276,79 +307,64 @@ def render_player(tab,
 
 
 
-    elif tab == 'service_return':
+    elif tab == 'serve_return':
         
-        cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'ace', 'df']
-        fig_service_return = tp.plot_stats(columns=cols_to_plot)
+        fig_serve_return = tp.plot_serve_return_stats(columns=serve_return_cols)
 
         div = html.Div([
             dcc.Graph(
-                figure=fig_service_return,
-                id='graph_service_return',
+                figure=fig_serve_return,
+                id='graph_serve_return',
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        ], style={'height': f'{400*len(serve_return_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
-    elif tab == 'service_return_distribution':
 
-        cols_to_plot = ['firstIn', 'firstWon', 'secondWon', 'returnWon']
-        fig_distribution = tp.plot_distribution(columns=cols_to_plot)
-
-        div = html.Div([
-            dcc.Graph(
-                figure=fig_distribution,
-                id='graph_distribution',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'height': '95%'}
-            )
-        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-        )
-
-    elif tab == 'pressure':
+    elif tab == 'under_pressure':
         
-        cols_to_plot = ['bpSaved', 'bpConverted', 'tbWon', 'decidingSetWon']
-        fig_pressure = tp.plot_stats(columns=cols_to_plot)
+        fig_under_pressure = tp.plot_under_pressure(columns=under_pressure_cols)
 
         div = html.Div([
             dcc.Graph(
-                figure=fig_pressure,
-                id='pressure_graph',
+                figure=fig_under_pressure,
+                id='graph_under_pressure',
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-        ], style={'height': f'{400*len(cols_to_plot)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        ], style={'height': f'{400*len(under_pressure_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
     
     elif tab == 'h2h':
 
         fig_h2h = tp.plot_h2h()
 
-        col_mapping = {
+        h2h_mapping = {
             'opponent_name': 'Opponent', 
-            'matches_played': 'Matches Played', 
-            'matches_won': 'Matches Won', 
+            'matches_played': 'Played', 
+            'matches_won': 'Won', 
             'win_rate': 'Winrate',
             'perc_ace': '% Aces',
-            'perc_df': '% Double Faults',
-            'perc_firstIn': '% First In',
-            'perc_firstWon': '% First Won', 
-            'perc_secondWon': '% Second Won', 
-            'perc_returnWon': '% Return Won', 
+            'perc_df': '% DoubleFaults',
+            'perc_firstIn': '% FirstIn',
+            'perc_firstWon': '% FirstWon', 
+            'perc_secondWon': '% SecondWon', 
+            'perc_returnWon': '% ReturnWon', 
             'perc_bpConverted': '% BP Converted',
             'perc_bpSaved': '% BP Saved', 
             'perc_tbWon': '% TB Won',
             'perc_decidingSetWon': '% Deciding Sets Won'
         }
 
-        h2h = tp.h2h.round(2)[col_mapping.keys()].rename(columns = col_mapping)
+        h2h = tp.h2h[h2h_mapping.keys()].rename(columns = h2h_mapping)
+        h2h.iloc[:, 3:] = (100*h2h.iloc[:, 3:]).round(2)
 
-
-        dt = dash_table.DataTable(
+        dt_h2h = dash_table.DataTable(
             data=h2h.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in h2h.columns],
             sort_action='native', filter_action='native',
+            style_cell_conditional=[{'if': {'column_id': 'Opponent'}, 'textAlign': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
             page_size=20
@@ -361,7 +377,10 @@ def render_player(tab,
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             ),
-            html.Div(dt, style={'margin-top': '2%', 'margin-left': '5%'})
+            html.Div([
+                html.H3('H2H Statistics', style={'text-align': 'center'}),
+                dt_h2h
+                ], style={'margin-top': '2%', 'margin-left': '5%'})
         ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
@@ -370,8 +389,8 @@ def render_player(tab,
 
 
     
-    
-
+# if __name__ == '__main__':
+#     app.run_server(debug=True, dev_tools_ui=False, dev_tools_props_check=False)
 app.run_server(debug=True)
 
 
