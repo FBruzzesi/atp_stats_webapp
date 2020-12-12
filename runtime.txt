@@ -1,1 +1,1 @@
-python-pip freeze > requirements.txt3.8.5
+python-3.8.5
