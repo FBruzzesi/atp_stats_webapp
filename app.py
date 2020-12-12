@@ -14,31 +14,29 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 from tennis_utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader
-from tennis_utils.settings import tennis_player_settings
-from views.filters_div import get_filters_div
+from tennis_utils.functionalities import get_filters_div
 
-surface_colors = tennis_player_settings['surface_colors']
-colors = tennis_player_settings['colors']
+import yaml
+
+with open(os.getcwd() + '/config.yaml') as file:
+    config = yaml.load(file, Loader=yaml.Loader)
+
+surface_colors = config['surface_colors']
+colors = config['colors']
+serve_return_cols = config['serve_return_cols']
+under_pressure_cols = config['under_pressure_cols']
+tourney_level_map = config['tourney_level_map']
+rounds = config['rounds']
+details_mapping = config['details_mapping']
+h2h_mapping = config['h2h_mapping']
+
+
 # Data Load
-data_path = os.getcwd()+'/data'
+data_path = os.getcwd() + '/data'
 
 tdl = TennisDataLoader(data_path+'/matches.parquet', data_path+'/players.parquet')
 matches_df, players_df = tdl.matches, tdl.players
 
-
-serve_return_cols = ['firstIn', 'firstWon', 'secondWon', 'returnWon', 'ace', 'df']
-under_pressure_cols = ['bpSaved', 'bpConverted', 'tbWon', 'decidingSetWon']
-
-
-tourney_level_map = {
-    
-    'A': 'Atp 500',
-    'M': 'Master 1000',
-    'G': 'Grand Slam',
-    'F': 'Finals', 
-    'C': 'Challenger',
-    'D': 'Davis Cup'
-}
 
 
 header=html.Div([
@@ -56,11 +54,10 @@ header=html.Div([
 app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
 
 markdown = """
-**Data Attribution:** The data used here is (part of) the amazing dataset created by **Jeff Sackmann** 
+**Data Attribution:** The data used here is (part of) the amazing dataset created by [**Jeff Sackmann**](http://www.jeffsackmann.com/) 
 (Check out his [github repository](https://github.com/JeffSackmann/tennis_atp))
 
-**Data Usage: ** In particular, I am using atp singles from 2000 to 2020 data, therefore you will not find any match before 2000 nor after the first part of the 2020 season.
-I am currently working towards a solution for such inconvenience.
+**Data Usage: ** In particular, I am using atp singles from 1995 to 2020 (pre-covid) data. I am currently working towards a solution for independent data gathering.
 
 **Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use.  Therefore I am sure it is possible to find bugs and non-working interactions. 
 If you find any or just want to get in touch with me, please feel free to reach out by [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/)
@@ -75,8 +72,13 @@ If you find any or just want to get in touch with me, please feel free to reach 
 app.layout = html.Div([
     header,
     html.Hr(style={'width': '96%', 'margin-top': '1%', 'margin-bottom': '1%'}),
-    dcc.Markdown(markdown, style={'margin-left': '3%'}),
-    html.Hr(style={'width': '96%', 'margin-top': '1%', 'margin-bottom': '1%'}),
+    html.Details(
+        open=True,
+        children=[
+        html.Summary(id='open_details', children = 'Close Description', style={'margin-left': '1.5%'}),
+        dcc.Markdown(markdown, style={'margin-left': '3%', 'margin-top': '10pt'}),
+        html.Div(id='open_state', children=True, style={'display': 'none'})
+    ]),
     # Hidden Div Block
     html.Div([
         # Store selected player matches data
@@ -104,16 +106,25 @@ app.layout = html.Div([
                 },
         ),
         html.Div(id='tab-content')
-    ]),
+    ], style={'margin-top':'1%'}),
 ])
-
-
 
 
 '''
 Defining App callbacks i.e. interactions
 '''
 
+@app.callback(
+    [Output('open_state', 'children'),
+    Output('open_details', 'children')],
+    [Input('open_details', 'n_clicks')],
+    [State('open_state', 'children')],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        open_det = 'Close Description' if not is_open else 'Open Description'
+        return [not is_open, open_det]
+    return [is_open, 'Close Description']
 
 # Select Player and update all other filters field
 @app.callback(
@@ -159,19 +170,6 @@ def select_player(player_name):
     opponents_opt = [{'label': o, 'value': o} for o in sorted(player_matches['opponent_name'].unique())]
 
 
-    rounds = [
-        {'label': 'Final', 'value': 'F'},
-        {'label': 'Semifinal', 'value': 'SF'},
-        {'label': 'Quarterfinal', 'value': 'QF'},
-        {'label': 'R16', 'value': 'R16'},
-        {'label': 'R32', 'value': 'R32'},
-        {'label': 'R64', 'value': 'R64'}, 
-        {'label': 'R128', 'value': 'R128'}, 
-        {'label': 'Q1', 'value': 'Q1'},
-        {'label': 'Q2', 'value': 'Q2'},
-        {'label': 'Q3', 'value': 'Q3'},
-        {'label': 'Round Robin', 'value': 'RR'}
-    ]
     player_rounds = player_matches['round'].unique() #['round'].unique()
     rounds_opt = [r for r in rounds if r['value'] in player_rounds]
 
@@ -181,12 +179,6 @@ def select_player(player_name):
             yr_min, yr_max, yr_marks, yr_value, surfaces, surfaces_opt, 
             tourney_levels, tourney_levels_opt, tourney_opt, opponents_opt, rounds_opt]
     
-
-
-
-
-
-
 
 @app.callback(
     Output(component_id='tab-content', component_property='children'),
@@ -245,15 +237,6 @@ def render_player(tab,
         fig_summary = tp.plot_summary()
 
         # Generate datatables
-        details_mapping = {
-            'player_name': 'Player Name',
-            'best_rank': 'Best Rank',
-            'country_code': 'Nationality',
-            'birthdate': 'Birthdate',
-            'age': 'Age', 
-            'hand':'Hand',
-            'height':'Height'
-        }
         details = tp.player_details
         details.columns=['info', 'value']
         details['info'] = details['info'].map(details_mapping)
@@ -266,8 +249,8 @@ def render_player(tab,
 
 
         dt_details = dash_table.DataTable(
-            data=details.to_dict('records'),
-            columns=[{'id': c, 'name': c} for c in details.columns],
+            data=details.astype(str).to_dict('records'),
+            columns=[{'id': c, 'name': c, 'type': 'datetime'} for c in details.columns],
             style_cell={'textAlign': 'left'},
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'}
@@ -333,29 +316,14 @@ def render_player(tab,
                 hoverData={'points': [{'customdata': 'Japan'}]},
                 style={'height': '95%'}
             )
-        ], style={'height': f'{400*len(under_pressure_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        ], style={'height': f'{500*len(under_pressure_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
     
     elif tab == 'h2h':
 
         fig_h2h = tp.plot_h2h()
 
-        h2h_mapping = {
-            'opponent_name': 'Opponent', 
-            'matches_played': 'Played', 
-            'matches_won': 'Won', 
-            'win_rate': 'Winrate',
-            'perc_ace': '% Aces',
-            'perc_df': '% DoubleFaults',
-            'perc_firstIn': '% FirstIn',
-            'perc_firstWon': '% FirstWon', 
-            'perc_secondWon': '% SecondWon', 
-            'perc_returnWon': '% ReturnWon', 
-            'perc_bpConverted': '% BP Converted',
-            'perc_bpSaved': '% BP Saved', 
-            'perc_tbWon': '% TB Won',
-            'perc_decidingSetWon': '% Deciding Sets Won'
-        }
+        
 
         h2h = tp.h2h[h2h_mapping.keys()].rename(columns = h2h_mapping)
         h2h.iloc[:, 3:] = (100*h2h.iloc[:, 3:]).round(2)

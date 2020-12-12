@@ -1,11 +1,10 @@
 import pandas as pd
 import numpy as np
-import dask
-from dask import delayed
+#import dask
+#from dask import delayed
 from statsmodels.stats.proportion import proportion_confint
 
-import os, re, warnings, multiprocessing as mp
-
+import os, re
 from datetime import date, datetime as dt
 
 from typing import List, Set, Tuple, Dict, Optional
@@ -14,10 +13,14 @@ import plotly.graph_objects as go, plotly.express as px, plotly.figure_factory a
 from plotly.offline import init_notebook_mode
 from plotly.subplots import make_subplots
 
-# warnings.filterwarnings('ignore')
 
-from tennis_utils.settings import tennis_player_settings
-surface_colors = tennis_player_settings['surface_colors']
+import yaml
+
+with open(os.getcwd() + '/config.yaml') as file:
+    config = yaml.load(file, Loader=yaml.Loader)
+
+surface_colors = config['surface_colors']
+
 
 
 def timer(f, *args, **kwargs):
@@ -184,6 +187,7 @@ class TennisPlayerDataLoader:
         )
 
         cols = ['player_name', 'best_rank', 'country_code', 'birthdate', 'age', 'hand', 'height']
+        player_details['birthdate'] = player_details['birthdate'].astype('datetime64[ns]').dt.strftime('%d %b %Y')
         player_details = player_details[cols].T.reset_index()
         #player_details = pd.Series(player_details[cols].to_numpy().squeeze(), index=cols)
         return player_details
