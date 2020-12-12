@@ -39,6 +39,14 @@ matches_df, players_df = tdl.matches, tdl.players
 
 
 
+
+# Initialize App and define its layout
+app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+server = app.server
+
+
+
+
 header=html.Div([
     html.Div(
         html.H1(
@@ -50,8 +58,6 @@ header=html.Div([
     className='header',
 )
 
-# Initialize App and define its layout
-app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
 
 markdown = """
 **Data Attribution:** The data used here is (part of) the amazing dataset created by [**Jeff Sackmann**](http://www.jeffsackmann.com/) 
@@ -69,6 +75,8 @@ If you find any or just want to get in touch with me, please feel free to reach 
 - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
 - _H2H_: Shows winrate againsts most played opponents.
 """
+
+
 app.layout = html.Div([
     header,
     html.Hr(style={'width': '96%', 'margin-top': '1%', 'margin-bottom': '1%'}),
