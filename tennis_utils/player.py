@@ -4,7 +4,7 @@ import numpy as np
 #from dask import delayed
 from statsmodels.stats.proportion import proportion_confint
 
-import os, re
+import os, re, sqlite3
 from datetime import date, datetime as dt
 
 from typing import List, Set, Tuple, Dict, Optional
@@ -59,36 +59,38 @@ class TennisDataLoader:
         path where self.players is read from
     '''
 
-    def __init__(self, matches_data_path: str, players_data_path: str, type='parquet', sep=','):
+    def __init__(self, data_path: str, type='parquet', sep=','):
         '''
         Loads and stores matches and players data
 
         Parameters
         ----------
-        matches_data_path: str
-            path of matches data
-        players_data_path: str
-            path of players data
+        data_path: str
+            path of data
         type: str, default 'parquet' 
-            Type of extention: one between 'parquet' or 'csv'. 
+            Type of extention: one between 'parquet', 'csv' or 'sql'. 
         sep: str, default ','
             Field delimiter for the input files if type='csv'
         '''
         
         if type == 'parquet':
 
-            self.matches = pd.read_parquet(matches_data_path)
-            self.players = pd.read_parquet(players_data_path)
+            self.matches = pd.read_parquet(data_path + '/matches.parquet')
+            self.players = pd.read_parquet(data_path + '/players.parquet')
 
         elif type == 'csv':
-            self.matches = pd.read_csv(matches_data_path, sep = sep)
-            self.players = pd.read_csv(players_data_path, sep = sep)
+            self.matches = pd.read_csv(data_path + '/matches.csv', sep = sep)
+            self.players = pd.read_csv(data_path + '/players.csv', sep = sep)
+
+        elif type == 'sql':
+            conn = sqlite3.connect(data_path + '/tennis_database.db')
+            self.matches = pd.read_sql("SELECT * from matches", conn)
+            self.players = pd.read_sql("SELECT * from players", conn)
 
         else:
             raise Exception('Can only load parquet and csv format')
 
-        self.matches_path = matches_data_path
-        self.players_path = players_data_path
+        self.data_path  = data_path
 
 
     def __repr__(self):

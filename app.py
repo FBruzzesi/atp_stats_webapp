@@ -34,7 +34,7 @@ h2h_mapping = config['h2h_mapping']
 # Data Load
 data_path = os.getcwd() + '/data'
 
-tdl = TennisDataLoader(data_path+'/matches.parquet', data_path+'/players.parquet')
+tdl = TennisDataLoader(data_path=data_path, type='sql')
 matches_df, players_df = tdl.matches, tdl.players
 
 
@@ -75,7 +75,6 @@ If you find any or just want to get in touch with me, please feel free to reach 
 - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
 - _H2H_: Shows winrate againsts most played opponents.
 """
-
 
 app.layout = html.Div([
     header,
