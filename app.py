@@ -41,7 +41,10 @@ matches_df, players_df = tdl.matches, tdl.players
 
 
 # Initialize App and define its layout
-app = dash.Dash(__name__, external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+app = dash.Dash(__name__, 
+        title='ATP Stats',
+        external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+        
 server = app.server
 
 
@@ -366,7 +369,6 @@ def render_player(tab,
     
 if __name__ == '__main__':
     app.run_server(debug=True)
-    
 #app.run_server(debug=True)
 
 
