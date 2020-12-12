@@ -34,7 +34,7 @@ h2h_mapping = config['h2h_mapping']
 # Data Load
 data_path = os.getcwd() + '/data'
 
-tdl = TennisDataLoader(data_path=data_path, type='sql')
+tdl = TennisDataLoader(data_path=data_path)
 matches_df, players_df = tdl.matches, tdl.players
 
 
