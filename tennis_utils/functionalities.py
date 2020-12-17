@@ -52,7 +52,7 @@ def get_filters_div(matches_df):
             style={'width': '24%', 'display': 'inline-block', 'margin-left': '1%'}
         ),
         
-    ], style={'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px', 'margin-top': '25pt'}
+    ], style={'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px'}
     )
 
 
