@@ -247,7 +247,7 @@ class TennisPlayer:
             'time_end': time_end,
             'surface': surfaces,
             'tourney_level': tourney_levels,
-            'tournament': tournaments,
+            'tourney_name': tournaments,
             'opponent_name': opponents,
             'round': rounds,
             'opponent_rank': opponent_ranks
@@ -461,8 +461,32 @@ class TennisPlayer:
 
 class TennisPlayerRenderer(TennisPlayer):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self,
+                 player_name: str,
+                 player_matches: pd.DataFrame,
+                 player_rank: pd.DataFrame,
+                 player_details: pd.DataFrame,
+                 time_start: Optional[date] = None,
+                 time_end: Optional[date] = None,
+                 surfaces: Optional[List[str]] = None,
+                 tourney_levels: Optional[List[str]] = None,
+                 tournaments: Optional[List[str]] = None,
+                 opponents: Optional[List[str]] = None,
+                 rounds: Optional[List[str]] = None,
+                 opponent_ranks: Optional[int] = None):
+
+        super().__init__(player_name, 
+                         player_matches, 
+                         player_rank, 
+                         player_details, 
+                         time_start, 
+                         time_end, 
+                         surfaces, 
+                         tourney_levels, 
+                         tournaments, 
+                         opponents, 
+                         rounds, 
+                         opponent_ranks)
 
 
     def plot_summary(self):

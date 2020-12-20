@@ -76,7 +76,7 @@ If you find any or just want to get in touch with me, please feel free to reach 
 - _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
 - _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
 - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
-- _H2H_: Shows winrate againsts most played opponents.
+- _H2H_: Head-to-Head, shows winrate againsts most played opponents.
 """
 
 app.layout = html.Div([
