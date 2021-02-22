@@ -23,7 +23,7 @@ What actually needs to be done:
 6. Clone repo from GitHub to local machine (only once).
 7. Create Heroku app linked to your repo (only once, ref deployment guides, Heroku CLI).
 8. Commit and push your code changes to GitHub repo (repetitively).
-9. Deploy/Re-deploy Heroku app by pushing changes from Heroku CLI (`git push Heroku main`).
+9. Deploy/Re-deploy Heroku app by pushing changes from Heroku CLI (`git push Heroku main` or `git push heroku HEAD:master`).
 
 # Deployment Guides
 The guides below are concise and useful, and I would of course start with these. If I’m honest, I think they are a little light on detail for newcomers and would benefit greatly by having a supplementary explanatory guide akin to something like this essay.
