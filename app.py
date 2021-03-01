@@ -68,15 +68,17 @@ markdown = """
 
 **Data Usage:** In particular, I am using atp singles from 1995 to 2020 data. I am currently working towards an independent data gathering solution.
 
-**Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use.  Therefore I am sure it is possible to find bugs and non-working interactions. 
+**Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use. Therefore I am sure it is possible to find bugs and non-working interactions. 
 If you find any or just want to get in touch with me, please feel free to reach out by [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/)
 
-**How it Works:** Down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
+**How it Works:** I hope this is straightforward; down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
 
 - _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
 - _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
 - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
 - _H2H_: Head-to-Head, shows winrate againsts most played opponents.
+
+If you'd like to support this project, you can do so by [buying me a coffee](https://www.buymeacoffee.com/fbruzzesi)
 """
 
 app.layout = html.Div([
