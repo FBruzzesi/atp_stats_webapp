@@ -78,7 +78,7 @@ If you find any or just want to get in touch with me, please feel free to reach 
 - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
 - _H2H_: Head-to-Head, shows winrate againsts most played opponents.
 
-If you'd like to support this project, you can do so by [buying me a coffee](https://www.buymeacoffee.com/fbruzzesi)
+**Support:** If you'd like to support this project, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
 """
 
 app.layout = html.Div([
