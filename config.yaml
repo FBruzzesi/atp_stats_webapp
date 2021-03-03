@@ -70,11 +70,31 @@ details_mapping:
     player_name: Player Name
     best_rank: Best Rank
     country_code: Nationality
-    birthdate: Birthdate [years]
-    age: Age
+    birthdate: Birthdate
+    age: Age [years]
     hand: Hand
     height: Height [cm]
 
+matches_mapping:
+    year: Year 
+    tourney_name: Tournament
+    tourney_level: Tourney Level
+    surface: Surface
+    opponent_name: Opponent
+    result: Result
+    score: Score
+    round: Round
+    minutes: Minutes
+    ace: Aces
+    df: D.Fault
+    svpt: ServicePoints
+    firstIn: FirstIn
+    firstWon: FirstWon
+    secondWon: SecondWon
+    bpSaved: BpSaved
+    bpFaced: BpFaced
+    returnWon: ReturnWon
+    returnPlayed: ReturnPlayed
 
 h2h_mapping:
     opponent_name: Opponent

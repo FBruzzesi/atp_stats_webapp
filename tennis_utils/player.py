@@ -160,12 +160,13 @@ class TennisPlayerDataLoader:
             rank and rank points over time
         '''
         
-        rank_df = (self.player_matches[['tourney_date', 'rank', 'rank_points']]
-                       .drop_duplicates().sort_values('tourney_date')
-                       .dropna(subset=['rank', 'rank_points'])
+        rank_df = (self.player_matches
+                    .groupby('year')
+                    .agg(rank = ('rank', np.min))
+                    .dropna()
+                    .astype(int)
+                    .reset_index()
         )
-
-        rank_df[['rank', 'rank_points']] = rank_df[['rank', 'rank_points']].astype(int)
 
         return rank_df
 
@@ -181,11 +182,13 @@ class TennisPlayerDataLoader:
         '''
         age = np.round((date.today() - player_details['birthdate'].astype('datetime64[ns]').dt.date).dt.days/365.25, 2)
 
-        player_details = (player_details.assign(age = age)
-                                        .assign(hand = self.player_matches['hand'].max())
-                                        .assign(height = self.player_matches['ht'].max(skipna=False))
-                                        .assign(best_rank = self.player_rank['rank'].min())
-                                        .assign(most_rank_pts = self.player_rank['rank_points'].max())
+        player_details = (player_details
+                            .assign(
+                                age = age,
+                                hand = self.player_matches['hand'].max(),
+                                height = self.player_matches['ht'].max(skipna=False),
+                                best_rank = self.player_rank['rank'].min()
+                            )
         )
 
         cols = ['player_name', 'best_rank', 'country_code', 'birthdate', 'age', 'hand', 'height']
@@ -256,7 +259,7 @@ class TennisPlayer:
 
         self.selected_matches = self.select_matches()
         self.n_matches = self.selected_matches.shape[0]
-        self.player_rank = self.get_rank(player_rank)
+        self.player_rank = self.get_rank(player_rank, player_matches)
 
         self.win_rate = self.selected_matches['result'].value_counts(normalize=True).sort_index()
 
@@ -293,7 +296,7 @@ class TennisPlayer:
         return self.player_matches.loc[np.all(np.array(masks).T, axis=1)]
         
 
-    def get_rank(self, rank_df):
+    def get_rank(self, rank_df, matches_df):
         '''
         Generate time series of player rank and rank points
         
@@ -305,9 +308,22 @@ class TennisPlayer:
         
         time_start = self.filters['time_start'] if self.filters['time_start'] is not None else date(1970,1,1)
         time_end = self.filters['time_end'] if self.filters['time_end'] is not None else date(2999,12,31)
-        time_mask = pd.to_datetime(rank_df['tourney_date']).dt.date.between(time_start, time_end).to_numpy()
 
-        return rank_df.loc[time_mask]
+        time_mask = rank_df['year'].between(time_start.year, time_end.year).to_numpy()
+
+        winner_df = (matches_df
+                    .loc[lambda x: (x['winner']==1) & (x['round']=='F')]
+                    .groupby('year').size()
+                    .reset_index()
+        )
+
+        r = (pd.merge(rank_df.loc[time_mask], winner_df, on='year', how='left')
+                .fillna(0)
+                .astype(int)
+        )
+        r.columns = ['year', 'rank', 'tourney_won']
+
+        return r 
  
 
     def get_overall_stats(self):
@@ -359,21 +375,24 @@ class TennisPlayer:
                 tbPlayed = ('tbPlayed', np.sum),
                 tbWon = ('tbWon', np.sum),
                 decidingSetPlayed = ('decidingSetPlayed', np.sum),
-                decidingSetWon = ('decidingSetWon', np.sum))
-            .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
-            .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
-            .assign(perc_ace = lambda x: x['ace']/x['svpt'])
-            .assign(perc_df = lambda x: x['df']/x['svpt'])
-            .assign(perc_firstIn = lambda x: x['firstIn']/x['svpt'])
-            .assign(perc_firstWon = lambda x: x['firstWon']/x['firstIn'])
-            .assign(perc_secondWon = lambda x: x['secondWon']/x['secondIn'])
-            .assign(perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'])
-            .assign(perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'])
-            .assign(perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'])
-            .assign(tbLost = lambda x: x['tbPlayed'] - x['tbWon'])
-            .assign(perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'])
-            .assign(decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'])
-            .assign(perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed'])
+                decidingSetWon = ('decidingSetWon', np.sum)
+            )
+            .assign(
+                matches_lost = lambda x: x['matches_played'] - x['matches_won'],
+                win_rate = lambda x: x['matches_won']/x['matches_played'],
+                perc_ace = lambda x: x['ace']/x['svpt'],
+                perc_df = lambda x: x['df']/x['svpt'],
+                perc_firstIn = lambda x: x['firstIn']/x['svpt'],
+                perc_firstWon = lambda x: x['firstWon']/x['firstIn'],
+                perc_secondWon = lambda x: x['secondWon']/x['secondIn'],
+                perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'],
+                perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'],
+                perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'],
+                tbLost = lambda x: x['tbPlayed'] - x['tbWon'],
+                perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'],
+                decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'],
+                perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed']
+            )
             .reset_index()
         )
 
@@ -496,7 +515,7 @@ class TennisPlayerRenderer(TennisPlayer):
                 specs=[[{'colspan': 2, 'secondary_y': True}, None],
                        [{'secondary_y': True}, {'type': 'polar'}]],
                 shared_xaxes=True,
-                subplot_titles=['Rank and Rank points by Week', 
+                subplot_titles=['Best Rank and Titles by Year', 
                                 'Win Rate and Played Matches by Year',
                                 'Player Summary Statistics'],
                 vertical_spacing=0.1,
@@ -505,9 +524,9 @@ class TennisPlayerRenderer(TennisPlayer):
         )
 
         # Add Rank over time
-        x1 = self.player_rank['tourney_date'].to_numpy()
+        x1 = self.player_rank['year'].to_numpy()
         y1 = self.player_rank['rank'].to_numpy()
-        y2 = self.player_rank['rank_points'].to_numpy()
+        y2 = self.player_rank['tourney_won'].to_numpy()
         
         fig.add_trace(
             go.Scatter(
@@ -515,8 +534,8 @@ class TennisPlayerRenderer(TennisPlayer):
                 name='Rank',
                 marker={'color': 'goldenrod'},
                 mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y1)],
-                textposition='top center',
+                text=y1,
+                textposition='bottom center',
                 textfont_size=8,
                 opacity=0.8
             ),
@@ -525,13 +544,12 @@ class TennisPlayerRenderer(TennisPlayer):
         )
 
         fig.add_trace(
-            go.Scatter(
+            go.Bar(
                 x=x1, y=y2,
-                name='Rank Points',
-                line={'color':'midnightblue', 'width':2.5},
-                mode='lines+text',
-                text=[p if i%5==0 else None for i, p in enumerate(y2)],
-                textposition='top center',
+                name='Tournaments Won',
+                marker={'color':'midnightblue'},
+                text=y2,
+                textposition='inside',
                 textfont_size=8,
                 opacity=0.8
             ),
@@ -612,8 +630,8 @@ class TennisPlayerRenderer(TennisPlayer):
                     },
             barmode='stack',
             xaxis={'title': 'Year-Month'},
-            yaxis={'title': 'Rank', 'range': [0, np.max(y1)+10]},
-            yaxis2={'title': 'Rank Points', 'range': [0, np.max(y2)*1.1]},
+            yaxis={'title': 'Best Rank', 'range': [np.max(y1)+10, -2]},
+            yaxis2={'title': 'Tournaments Won', 'range': [0, np.max(y2)*1.1]},
             xaxis2={'title': 'Year'},
             yaxis3={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
             yaxis4={'range':[0, 105], 'title': 'Win Rate (%)'},

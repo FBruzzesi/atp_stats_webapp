@@ -28,6 +28,7 @@ under_pressure_cols = config['under_pressure_cols']
 tourney_level_map = config['tourney_level_map']
 rounds = config['rounds']
 details_mapping = config['details_mapping']
+matches_mapping = config['matches_mapping']
 h2h_mapping = config['h2h_mapping']
 
 
@@ -66,20 +67,20 @@ markdown = """
 **Data Attribution:** The data used here is (part of) the amazing dataset created by [**Jeff Sackmann**](http://www.jeffsackmann.com/) 
 (Check out his [github repository](https://github.com/JeffSackmann/tennis_atp))
 
-**Data Usage:** In particular, I am using atp singles from 1995 to 2020 data. I am currently working towards an independent data gathering solution.
+**Data Usage:** In particular, I am using atp singles from 1995 to present day data. I am currently working towards an independent data gathering solution.
 
 **Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use. Therefore I am sure it is possible to find bugs and non-working interactions. 
 If you find any or just want to get in touch with me, please feel free to reach out by [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/)
 
-**How it Works:** I hope this is straightforward; down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
-
-- _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
-- _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
-- _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
-- _H2H_: Head-to-Head, shows winrate againsts most played opponents.
-
 **Support:** If you'd like to support this project, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
 """
+
+# **How it Works:** I hope this is straightforward; down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
+
+# - _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
+# - _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
+# - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
+# - _H2H_: Head-to-Head, shows winrate againsts most played opponents.
 
 app.layout = html.Div([
     header,
@@ -210,19 +211,20 @@ def select_player(player_name):
     [State(component_id='player_name', component_property='value')]
 )
     
-def render_player(tab,
-                  player_matches,
-                  player_details,
-                  player_rank,
-                  time_period,
-                  surfaces,
-                  tourney_levels,
-                  tournaments,
-                  opponents,
-                  rounds,
-                  opponent_ranks,
-                  player_name
-                  ):
+def render_player(
+        tab,
+        player_matches,
+        player_details,
+        player_rank,
+        time_period,
+        surfaces,
+        tourney_levels,
+        tournaments,
+        opponents,
+        rounds,
+        opponent_ranks,
+        player_name
+        ):
 
     y1, y2 = time_period
     time_start, time_end = date(y1, 1, 1), date(y2, 12, 31)
@@ -259,6 +261,12 @@ def render_player(tab,
                 })
         stats['info'] = [ '% ' + c.split('_')[-1].capitalize() for c in stats['info']]
 
+        matches = (tp.selected_matches
+                    .sort_values(['tourney_date', 'match_num'], ascending=[False, False])
+                    .assign(tourney_level = lambda x: x['tourney_level'].map(tourney_level_map))
+                    .loc[:, matches_mapping.keys()]
+                    .rename(columns=matches_mapping)
+        )
 
         dt_details = dash_table.DataTable(
             data=details.astype(str).to_dict('records'),
@@ -277,6 +285,15 @@ def render_player(tab,
             style_header = {'display': 'none'}
         )
 
+        dt_recent = dash_table.DataTable(
+            data=matches.head(15).to_dict('records'),
+            columns=[{'id':c, 'name':c} for c in matches.columns],
+            sort_action='native',
+            style_cell_conditional=[{'if': {'column_id': 'info'}, 'textAlign': 'left'}],
+            style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
+            style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
+            #page_size=15
+        )
 
         # Create html Div
         div = html.Div([
@@ -294,7 +311,13 @@ def render_player(tab,
                      html.H3('Player Statistics', style={'text-align': 'center'}),
                      dt_stats
                     ], style={'margin-top': '2%', 'margin-left': '35%', 'width':'25%', 'display': 'inline-block'})
+                ]),
+            html.Div([
+                html.Div([
+                    html.H3('Recent Matches', style={'text-align': 'center'}),
+                    dt_recent
                 ])
+            ])
         ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
