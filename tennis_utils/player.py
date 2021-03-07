@@ -138,15 +138,16 @@ class TennisPlayerDataLoader:
             TennisDataLoader instance
         '''
         self.player_name = player_name
-        self.player_matches = (player_matches.loc[player_matches['player_name']==player_name]
-                                    .sort_values(['tourney_date', 'match_num'])
-        )
-        self.n_matches = self.player_matches.shape[0]
-
-
-        self.player_rank = self.get_rank()
-
         player_details = player_details[player_details['player_name']==player_name]
+    
+        self.player_id = player_details.iloc[0]['id']
+
+        self.player_matches = (player_matches.loc[player_matches['id']==self.player_id]
+                                .sort_values(['tourney_date', 'match_num'])
+                            )
+
+        self.n_matches = self.player_matches.shape[0]
+        self.player_rank = self.get_rank()
         self.player_details = self.get_player_details(player_details)
 
 
@@ -180,7 +181,8 @@ class TennisPlayerDataLoader:
         player_details: pd.DataFrame
             Dataframe containing player details
         '''
-        age = np.round((date.today() - player_details['birthdate'].astype('datetime64[ns]').dt.date).dt.days/365.25, 2)
+        
+        age = np.round((date.today() - pd.to_datetime(player_details['birthdate']).dt.date).dt.days/365.25, 2)
 
         player_details = (player_details
                             .assign(
@@ -509,26 +511,18 @@ class TennisPlayerRenderer(TennisPlayer):
 
 
     def plot_summary(self):
+        
 
-        fig = make_subplots(
-                cols=2, rows=2,
-                specs=[[{'colspan': 2, 'secondary_y': True}, None],
-                       [{'secondary_y': True}, {'type': 'polar'}]],
-                shared_xaxes=True,
-                subplot_titles=['Best Rank and Titles by Year', 
-                                'Win Rate and Played Matches by Year',
-                                'Player Summary Statistics'],
-                vertical_spacing=0.1,
-                horizontal_spacing=0.15,
-                column_widths=[0.8, 0.2]
-        )
+        fig1 = make_subplots(
+                specs=[[{'secondary_y': True}]],
+                )
 
         # Add Rank over time
         x1 = self.player_rank['year'].to_numpy()
         y1 = self.player_rank['rank'].to_numpy()
         y2 = self.player_rank['tourney_won'].to_numpy()
         
-        fig.add_trace(
+        fig1.add_trace(
             go.Scatter(
                 x=x1, y=y1,
                 name='Rank',
@@ -543,7 +537,7 @@ class TennisPlayerRenderer(TennisPlayer):
             row=1, col=1
         )
 
-        fig.add_trace(
+        fig1.add_trace(
             go.Bar(
                 x=x1, y=y2,
                 name='Tournaments Won',
@@ -556,7 +550,24 @@ class TennisPlayerRenderer(TennisPlayer):
             secondary_y=True,
             row=1, col=1
         )
+
+        fig1.update_layout(
+            height=500,
+            legend={'font':{'size':10}, 'orientation':'h', 
+                    'yanchor': 'bottom', 'y': 1.05, 'xanchor': 'right', 'x': 1
+                    },
+            title_font_size=18,
+            title={'text': 'Best Rank and Titles by Year',
+                    'x':0.5, 'xanchor': 'center',
+                    'y':0.9, 'yanchor': 'top'},
+            xaxis={'title': 'Year-Month'},
+            yaxis={'title': 'Best Rank', 'range': [np.max(y1)+10, -2]},
+            yaxis2={'title': 'Tournaments Won', 'range': [0, np.max(y2)*1.1]},
+        )
         
+        fig2 = make_subplots(
+                specs=[[{'secondary_y': True}]],
+                )
 
         # Add Winrate over time 
 
@@ -565,7 +576,7 @@ class TennisPlayerRenderer(TennisPlayer):
         b2 = self.stats_by_year['matches_lost'].to_numpy().astype(int)
         wr = 100*self.stats_by_year['win_rate'].to_numpy().astype(float)
 
-        fig.add_trace(
+        fig2.add_trace(
             go.Bar(
                 x=x2, y=b1,
                 name='Matches Won',
@@ -576,9 +587,9 @@ class TennisPlayerRenderer(TennisPlayer):
                 opacity=0.8
             ),
             secondary_y=False,
-            row=2, col=1
+            row=1, col=1
         )
-        fig.add_trace(
+        fig2.add_trace(
             go.Bar(
                 x=x2, y=b2,
                 name='Matches Lost',
@@ -589,11 +600,11 @@ class TennisPlayerRenderer(TennisPlayer):
                 opacity=0.8
             ),
             secondary_y=False,
-            row=2, col=1
+            row=1, col=1
         )
 
 
-        fig.add_trace(
+        fig2.add_trace(
             go.Scatter(
                 x=x2, y=wr,
                 name='Win Rate',
@@ -603,45 +614,41 @@ class TennisPlayerRenderer(TennisPlayer):
                 textposition='top center',
                 textfont_size=8
             ),
-             secondary_y=True,
-            row=2, col=1
+            secondary_y=True,
+            row=1, col=1
         )
 
         # Plot Radar
-        s = self.perc_overall.drop(['perc_ace', 'perc_df'])
+        # s = self.perc_overall.drop(['perc_ace', 'perc_df'])
 
-        fig.add_trace(
-            go.Scatterpolar(
-                r=s.to_numpy()[::-1],
-                theta=[ '%' + c.split('_')[-1] for c in s.index][::-1],
-                fill='toself',
-                name='Stat %',
-                marker={'color': 'orangered'},
-            ),
-            row=2, col=2
-        )
+        # fig2.add_trace(
+        #     go.Scatterpolar(
+        #         r=s.to_numpy()[::-1],
+        #         theta=[ '%' + c.split('_')[-1] for c in s.index][::-1],
+        #         fill='toself',
+        #         name='Stat %',
+        #         marker={'color': 'orangered'},
+        #     ),
+        #     row=1, col=2
+        # )
 
 
-        fig.update_layout(
-            height=1000,
-            legend={'font':{'size':10}, 
-                    'orientation':'h', 
-                    'yanchor': 'bottom', 'y': 1.05, 'xanchor': 'right', 'x': 1
+        fig2.update_layout(
+            height=500,
+            legend={'font':{'size':10}, 'orientation':'h', 'traceorder':'normal',
+                    'yanchor': 'bottom', 'y': 1.025, 'xanchor': 'right', 'x': 1
                     },
+            title_font_size=18,
+            title={'text': 'Win Rate and Played Matches by Year',
+                    'x':0.5, 'xanchor': 'center',
+                    'y':0.9, 'yanchor': 'top'},
             barmode='stack',
             xaxis={'title': 'Year-Month'},
-            yaxis={'title': 'Best Rank', 'range': [np.max(y1)+10, -2]},
-            yaxis2={'title': 'Tournaments Won', 'range': [0, np.max(y2)*1.1]},
-            xaxis2={'title': 'Year'},
-            yaxis3={'range':[0, np.max(b1+b2)+15], 'title': 'Number of Matches'},
-            yaxis4={'range':[0, 105], 'title': 'Win Rate (%)'},
-            polar={'radialaxis': {'range':[0,100]}}
-
+            yaxis1={'range': [0, self.stats_by_year[['matches_won', 'matches_lost']].sum(axis=1).max() + 15], 'title': 'Number of Matches'},
+            yaxis2={'range': [0, 105], 'title': 'Win Rate (%)'},
         )
 
-
-
-        return fig
+        return fig1, fig2
 
 
     def plot_surface_wl(self, surface_colors: Dict = surface_colors):

@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 
-def get_filters_div(matches_df):
+def get_filters_div(matches_df, players_df):
     # First Div Block
     row1 = html.Div([
             # Select Player
@@ -9,7 +9,7 @@ def get_filters_div(matches_df):
             html.H5('Select a Player', style={'justify': 'center', 'align': 'center', 'text-align': 'center'}),
             dcc.Dropdown(
                 id='player_name',
-                options=[{'label': n, 'value':n} for n in sorted(matches_df['player_name'].unique())],
+                options=[{'label': n, 'value':n} for n in sorted(players_df['player_name'].unique())],
                 value='Roger Federer',
                 clearable=False,
                 style={'justify': 'center', 'align': 'center', 'text-align': 'center'}

@@ -86,11 +86,11 @@ matches_mapping:
     round: Round
     minutes: Minutes
     ace: Aces
-    df: D.Fault
-    svpt: ServicePoints
-    firstIn: FirstIn
-    firstWon: FirstWon
-    secondWon: SecondWon
+    df: DF
+    svpt: SvPt
+    firstIn: 1stIn
+    firstWon: 1stWon
+    secondWon: 2ndWon
     bpSaved: BpSaved
     bpFaced: BpFaced
     returnWon: ReturnWon

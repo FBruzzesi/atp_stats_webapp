@@ -13,7 +13,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
-from tennis_utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader
+from tennis_utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader, get_player_name
 from tennis_utils.functionalities import get_filters_div
 
 import yaml
@@ -37,8 +37,6 @@ data_path = os.getcwd() + '/data'
 
 tdl = TennisDataLoader(data_path=data_path)
 matches_df, players_df = tdl.matches, tdl.players
-
-
 
 
 # Initialize App and define its layout
@@ -67,12 +65,12 @@ markdown = """
 **Data Attribution:** The data used here is (part of) the amazing dataset created by [**Jeff Sackmann**](http://www.jeffsackmann.com/) 
 (Check out his [github repository](https://github.com/JeffSackmann/tennis_atp))
 
-**Data Usage:** In particular, I am using atp singles from 1995 to present day data. I am currently working towards an independent data gathering solution.
+**Data Usage:** In particular, I am using atp tour-level main draw single matches from 1995 to present day. I am currently working towards an independent data gathering solution.
 
 **Bug Fix:** This is a MVP which I had fun developing, mostly on weekends, for personal use. Therefore I am sure it is possible to find bugs and non-working interactions. 
 If you find any or just want to get in touch with me, please feel free to reach out by [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/)
 
-**Support:** If you'd like to support this project, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
+**Support:** I would love to grow the project, if you feel like supporting, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
 """
 
 # **How it Works:** I hope this is straightforward; down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
@@ -102,7 +100,7 @@ app.layout = html.Div([
         html.Div(id='selected_player_rank', style={'display': 'none'})
         ], style={'display': 'none'}
     ),
-    *get_filters_div(matches_df),
+    *get_filters_div(matches_df, players_df),
     html.Div([
         dcc.Tabs(id='tabs', 
             value='summary', 
@@ -248,7 +246,7 @@ def render_player(
     if tab == 'summary':
 
         # Generate summary graph
-        fig_summary = tp.plot_summary()
+        fig1, fig2 = tp.plot_summary()
 
         # Generate datatables
         details = tp.player_details
@@ -263,7 +261,10 @@ def render_player(
 
         matches = (tp.selected_matches
                     .sort_values(['tourney_date', 'match_num'], ascending=[False, False])
-                    .assign(tourney_level = lambda x: x['tourney_level'].map(tourney_level_map))
+                    .assign(
+                        tourney_level = lambda x: x['tourney_level'].map(tourney_level_map),
+                        opponent_name = lambda x: x['opponent_name'].apply(get_player_name)
+                        )
                     .loc[:, matches_mapping.keys()]
                     .rename(columns=matches_mapping)
         )
@@ -273,7 +274,7 @@ def render_player(
             columns=[{'id': c, 'name': c, 'type': 'datetime'} for c in details.columns],
             style_cell={'textAlign': 'left'},
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
-            style_header = {'display': 'none'}
+            style_header = {'display': 'none'},
         )
 
         dt_stats = dash_table.DataTable(
@@ -297,32 +298,69 @@ def render_player(
 
         # Create html Div
         div = html.Div([
-            dcc.Graph(
-                figure=fig_summary,
-                id='graph_summary',
-                hoverData={'points': [{'customdata': 'Japan'}]}
-            ),
-            html.Div([
-                html.Div([
-                    html.H3('Player Details', style={'text-align': 'center'}),
-                    dt_details
-                    ], style={'margin-top': '2%', 'margin-left': '5%', 'width':'30%', 'display': 'inline-block'}),
-                 html.Div([
-                     html.H3('Player Statistics', style={'text-align': 'center'}),
-                     dt_stats
-                    ], style={'margin-top': '2%', 'margin-left': '35%', 'width':'25%', 'display': 'inline-block'})
-                ]),
-            html.Div([
-                html.Div([
-                    html.H3('Recent Matches', style={'text-align': 'center'}),
-                    dt_recent
-                ])
+                html.Div(
+                    className='row',
+                    children=[
+                        html.Div(
+                            className='two columns',
+                            children=[
+                                html.H5('Player Details', style={'text-align': 'center', 'margin-bottom': '3%'}),
+                                dt_details
+                            ],
+                            style={'margin-top': '5%', 'margin-left': '5%'}
+                        ),
+                        html.Div(
+                            className='nine columns',
+                            children=[
+                                dcc.Graph(
+                                    figure=fig1,
+                                    id='graph_summary',
+                                    hoverData={'points': [{'customdata': 'Japan'}]},
+                                ),
+                            ],
+                            style={'margin-top': '2%'} 
+                        ),
+                    ]
+                ),
+                html.Div(
+                    className='row',
+                    children=[
+                        html.Div(
+                            className='nine columns',
+                            children=[
+                                dcc.Graph(
+                                    figure=fig2,
+                                    id='graph_summary',
+                                    hoverData={'points': [{'customdata': 'Japan'}]},
+                                ),
+                            ],
+                            style={'margin-top': '-1%'} 
+                        ),
+                        html.Div(
+                            className='two columns',
+                            children=[
+                                html.H5('Player Statistics', style={'text-align': 'center'}),
+                                dt_stats
+                            ],
+                            style={'margin-top': '1.5%',}
+                        ),
+                    ]
+                ),
+                html.Div(
+                    className='row',
+                    children=[
+                        html.Div(
+                            className='eleven columns',
+                            children=[
+                                html.H3('Recent Matches', style={'text-align': 'center'}),
+                                dt_recent
+                            ],
+                            style={'margin-top': '1%', 'margin-left': '3%'}
+                        )
+                    ],
+                    #style={}
+                ),
             ])
-        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-        )
-
-
-
 
 
     elif tab == 'serve_return':
@@ -358,9 +396,11 @@ def render_player(
 
         fig_h2h = tp.plot_h2h()
 
-        
+        h2h = (tp.h2h
+                .loc[:, h2h_mapping.keys()]
+                .rename(columns = h2h_mapping)
+                )
 
-        h2h = tp.h2h[h2h_mapping.keys()].rename(columns = h2h_mapping)
         h2h.iloc[:, 3:] = (100*h2h.iloc[:, 3:]).round(2)
 
         dt_h2h = dash_table.DataTable(
@@ -386,7 +426,6 @@ def render_player(
                 ], style={'margin-top': '2%', 'margin-left': '5%'})
         ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
-
     
     return div
 

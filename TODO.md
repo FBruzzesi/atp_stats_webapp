@@ -1,4 +1,2 @@
 # TODO List
-- Update README.md
-- Add latest matches
-- Add tournaments won
+- Use *id* to filter players instead of name for disalignment issues with string names
