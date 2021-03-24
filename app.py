@@ -31,6 +31,7 @@ details_mapping = config['details_mapping']
 matches_mapping = config['matches_mapping']
 h2h_mapping = config['h2h_mapping']
 
+tab_style={'fontWeight': 'bold'}
 
 # Data Load
 data_path = os.getcwd() + '/data'
@@ -101,14 +102,16 @@ app.layout = html.Div([
         ], style={'display': 'none'}
     ),
     *get_filters_div(matches_df, players_df),
-    html.Div([
+    html.Div(
+        className='row',
+        children=[
         dcc.Tabs(id='tabs', 
             value='summary', 
             children=[
-                dcc.Tab(label='Player Summary', value='summary'),
-                dcc.Tab(label='Serve & Return', value='serve_return'),
-                dcc.Tab(label='Under Pressure', value='under_pressure'),
-                dcc.Tab(label='H2H', value='h2h'),
+                dcc.Tab(label='Player Summary', value='summary', style=tab_style, selected_style=tab_style),
+                dcc.Tab(label='Serve & Return', value='serve_return', style=tab_style, selected_style=tab_style),
+                dcc.Tab(label='Under Pressure', value='under_pressure', style=tab_style, selected_style=tab_style),
+                dcc.Tab(label='H2H', value='h2h', style=tab_style, selected_style=tab_style),
             ], 
             colors={
                 'border': 'white',
