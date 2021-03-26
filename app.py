@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 
 from datetime import date, datetime as dt
-import os, re
+import os, re, yaml
+
 import plotly.graph_objects as go, plotly.express as px, plotly.figure_factory as ff
 from plotly.offline import init_notebook_mode
 from plotly.subplots import make_subplots
@@ -13,10 +14,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
-from tennis_utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader, get_player_name
-from tennis_utils.functionalities import get_filters_div
+# Local Imports
+from utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader, get_player_name
+from utils.filter_rows import get_filter_rows
 
-import yaml
 
 with open(os.getcwd() + '/config.yaml') as file:
     config = yaml.load(file, Loader=yaml.Loader)
@@ -54,7 +55,7 @@ header=html.Div([
     html.Div(
         html.H1(
             children='ATP Statistics', # Title line
-            style={'textAlign': 'center'},
+            style={'text-align': 'center', 'color': 'mediumblue', 'font-family': 'Arial', 'font-weight': 'bold'},
             className='content-container'
             )
     )],
@@ -101,9 +102,10 @@ app.layout = html.Div([
         html.Div(id='selected_player_rank', style={'display': 'none'})
         ], style={'display': 'none'}
     ),
-    *get_filters_div(matches_df, players_df),
+    *get_filter_rows(matches_df, players_df),
     html.Div(
         className='row',
+        style={'margin-left': '2%', 'margin-right': '2%', 'margin-top':'1%'},
         children=[
         dcc.Tabs(id='tabs', 
             value='summary', 
@@ -120,7 +122,7 @@ app.layout = html.Div([
                 },
         ),
         html.Div(id='tab-content')
-    ], style={'margin-top':'1%'}),
+    ]),
 ])
 
 
@@ -275,7 +277,7 @@ def render_player(
         dt_details = dash_table.DataTable(
             data=details.astype(str).to_dict('records'),
             columns=[{'id': c, 'name': c, 'type': 'datetime'} for c in details.columns],
-            style_cell={'textAlign': 'left'},
+            style_cell={'text-align': 'left'},
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'},
         )
@@ -284,7 +286,7 @@ def render_player(
             data=stats.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in stats.columns],
             sort_action='native',
-            style_cell_conditional=[{'if': {'column_id': 'info'}, 'textAlign': 'left'}],
+            style_cell_conditional=[{'if': {'column_id': 'info'}, 'text-align': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'}
         )
@@ -293,7 +295,7 @@ def render_player(
             data=matches.head(15).to_dict('records'),
             columns=[{'id':c, 'name':c} for c in matches.columns],
             sort_action='native',
-            style_cell_conditional=[{'if': {'column_id': 'info'}, 'textAlign': 'left'}],
+            style_cell_conditional=[{'if': {'column_id': 'info'}, 'text-align': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
             #page_size=15
@@ -410,7 +412,7 @@ def render_player(
             data=h2h.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in h2h.columns],
             sort_action='native', filter_action='native',
-            style_cell_conditional=[{'if': {'column_id': 'Opponent'}, 'textAlign': 'left'}],
+            style_cell_conditional=[{'if': {'column_id': 'Opponent'}, 'text-align': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
             page_size=20

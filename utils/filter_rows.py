@@ -1,12 +1,23 @@
 import dash_core_components as dcc
 import dash_html_components as html
+import yaml, os
 
-def get_filters_div(matches_df, players_df):
+with open(os.getcwd() + '/utils/styles.yaml') as file:
+    styles = yaml.load(file, Loader=yaml.Loader)
+
+
+style_h3 = styles['style_h3'] 
+style_dropdown = styles['style_dropdown'] 
+style_row1 = styles['style_row1']
+style_row2 = styles['style_row2'] 
+style_row3 = styles['style_row3'] 
+        
+def get_filter_rows(matches_df, players_df):
     # First Div Block
     row1 = html.Div(
         id='row1',
         className='row',
-        style={'borderTop': 'thin lightgrey solid', 'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px'},
+        style=style_row1,
         children=[
         # Select Player
         html.Div(
@@ -14,13 +25,13 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Player', style={'margin-left': '45%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Player', style=style_h3),
                 dcc.Dropdown(
                     id='player_name',
                     options=[{'label': n, 'value':n} for n in sorted(players_df['player_name'].unique())],
                     value='Roger Federer',
                     clearable=False,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 ),
             ],
         ),
@@ -30,11 +41,11 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Surface Type', style={'margin-left': '40%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Surface Type', style=style_h3),
                 dcc.Dropdown(
                     id='surface',
                     multi=True,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 ),
             ],
         ),
@@ -44,11 +55,11 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Tournament Levels', style={'margin-left': '30%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Tournament Levels', style=style_h3),
                 dcc.Dropdown(
                     id='tourney_level',
                     multi=True,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 ),
             ],
         ),
@@ -58,12 +69,12 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Select Tournaments', style={'margin-left': '30%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Select Tournaments', style=style_h3),
                 dcc.Dropdown(
                     id='tournament',
                     searchable=True, 
                     multi=True,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 ),
             ],
         ),
@@ -73,7 +84,7 @@ def get_filters_div(matches_df, players_df):
     row2 = html.Div(
         id='row2',
         className='row',
-        style={'backgroundColor': 'rgb(250, 250, 250)', 'padding': '20px 5px'},
+        style=style_row2,
         children=[
         # Select Opponents
         html.Div(
@@ -81,11 +92,11 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Select Opponents', style={'margin-left': '30%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Select Opponents', style=style_h3),
                 dcc.Dropdown(
                     id='opponent',
                     multi=True,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 )
             ],
         ),
@@ -95,7 +106,7 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Opponents Rank', style={'margin-left': '30%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Opponents Rank', style=style_h3),
                 dcc.Dropdown(
                     id='opponent_rank',
                     options=[{'label': 'Top 5', 'value': 5}, 
@@ -104,7 +115,7 @@ def get_filters_div(matches_df, players_df):
                              {'label': 'Top 50', 'value': 50}, 
                              {'label': 'Top 100', 'value': 100}
                             ],
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                     )
             ],
         ),
@@ -114,11 +125,11 @@ def get_filters_div(matches_df, players_df):
             className='three columns',
             style={'display': 'inline-block', 'margin-left': '1%'},
             children=[
-                html.Strong('Rounds',  style={'margin-left': '40%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Rounds', style=style_h3),
                 dcc.Dropdown(
                     id='round',
                     multi=True,
-                    style={'justify': 'center', 'align': 'center', 'text-align': 'center', 'margin-top': '1%', 'height': '50px'}
+                    style=style_dropdown
                 )
             ],
         ),
@@ -129,14 +140,14 @@ def get_filters_div(matches_df, players_df):
     row3 = html.Div(
         id='row3',
         className='row',
-        style={'borderBottom': 'thin lightgrey solid', 'backgroundColor': 'rgb(250, 250, 250)', 'padding': '10px 5px 35px'},
+        style=style_row3,
         children=[
         html.Div(
             id='select_period',
             className='six columns',
-            style={'display': 'inline-block', 'margin-left': '1%'},
+            style={'display': 'inline-block', 'margin-left': '5%'},
             children=[
-                html.Strong('Time Period', style={'margin-left': '45%', 'fontSize': '18px', 'color': 'mediumblue', 'font-family': 'Arial'}),
+                html.H3('Time Period', style=style_h3),
                 dcc.RangeSlider(
                     id='time_period',
                     step=1
