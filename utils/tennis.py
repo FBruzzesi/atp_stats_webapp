@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.stats.proportion import proportion_confint
 
-import os, re, sqlite3
+import os, re, yaml
 from datetime import date, datetime as dt
 
 from typing import List, Set, Tuple, Dict, Optional
@@ -12,9 +12,7 @@ from plotly.offline import init_notebook_mode
 from plotly.subplots import make_subplots
 
 
-import yaml
-
-with open(os.getcwd() + '/config.yaml') as file:
+with open(os.getcwd() + '/utils/config.yaml') as file:
     config = yaml.load(file, Loader=yaml.Loader)
 
 surface_colors = config['surface_colors']
@@ -57,7 +55,7 @@ class TennisDataLoader:
         path where self.players is read from
     '''
 
-    def __init__(self, data_path: str, type='parquet', sep=','):
+    def __init__(self, data_path: str, source='parquet', sep=','):
         '''
         Loads and stores matches and players data
 
@@ -66,29 +64,23 @@ class TennisDataLoader:
         data_path: str
             path of data
         type: str, default 'parquet' 
-            Type of extention: one between 'parquet', 'csv' or 'sql'. 
+            Type of extention: one between 'parquet' or 'csv'. 
         sep: str, default ','
             Field delimiter for the input files if type='csv'
         '''
         
-        if type == 'parquet':
+
+        if source == 'parquet':
 
             self.matches = pd.read_parquet(data_path + '/matches.parquet')
             self.players = pd.read_parquet(data_path + '/players.parquet')
 
-        elif type == 'csv':
+        elif source == 'csv':
             self.matches = pd.read_csv(data_path + '/matches.csv', sep = sep)
             self.players = pd.read_csv(data_path + '/players.csv', sep = sep)
 
-        elif type == 'sql':
-            conn = sqlite3.connect(data_path + '/tennis_database.db')
-            self.matches = pd.read_sql("SELECT * from matches", conn)
-            self.players = pd.read_sql("SELECT * from players", conn)
-
         else:
             raise Exception('Can only load parquet and csv format')
-
-        self.data_path  = data_path
 
 
     def __repr__(self):
@@ -126,7 +118,11 @@ class PlayerDataLoader:
         Retrieves player details from matches and players information dataframes
     
     '''
-    def __init__(self, player_name: str, player_matches: pd.DataFrame, player_details: pd.DataFrame):
+    def __init__(self, 
+                player_name: str, 
+                player_matches: pd.DataFrame, 
+                player_details: pd.DataFrame
+                ):
         '''
         Parameters
         ----------
@@ -194,7 +190,7 @@ class PlayerDataLoader:
         cols = ['player_name', 'best_rank', 'country_code', 'birthdate', 'age', 'hand', 'height']
         player_details['birthdate'] = player_details['birthdate'].astype('datetime64[ns]').dt.strftime('%d %b %Y')
         player_details = player_details[cols].T.reset_index()
-        #player_details = pd.Series(player_details[cols].to_numpy().squeeze(), index=cols)
+
         return player_details
 
 
@@ -267,9 +263,7 @@ class Player:
         self.get_yearly_stats()
         self.get_surface_winloss()
         self.get_h2h()
-
-        self.colors = ['rgb(33,113,181)', 'rgb(217,71,1)', 'rgb(81, 178, 124)', 'rgb(235, 127, 134)'] * 2
-            
+           
 
     def __repr__(self):
         
@@ -508,10 +502,11 @@ class PlayerRenderer(Player):
                          rounds, 
                          opponent_ranks)
 
+        self.colors = ['rgb(33,113,181)', 'rgb(217,71,1)', 'rgb(81, 178, 124)', 'rgb(235, 127, 134)'] * 2
+
 
     def plot_summary(self):
         
-
         fig1 = make_subplots(
                 specs=[[{'secondary_y': True}]],
                 )
