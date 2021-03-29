@@ -24,11 +24,11 @@ from utils.filter_rows import get_filter_rows
 
 tab_style={'fontWeight': 'bold'}
 
-# Load data
-data_path = os.getcwd() + '/data'
+# # Load data
+# data_path = os.getcwd() + '/data'
 
-tdl = TennisDataLoader(data_path=data_path)
-matches_df, players_df = tdl.matches, tdl.players
+# tdl = TennisDataLoader(data_path=data_path)
+matches_df, players_df = callbacks.matches_df, callbacks.players_df
 
 
 header=html.Div([
