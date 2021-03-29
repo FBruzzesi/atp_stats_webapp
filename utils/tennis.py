@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-#import dask
-#from dask import delayed
 from statsmodels.stats.proportion import proportion_confint
 
 import os, re, sqlite3
@@ -103,7 +101,7 @@ class TennisDataLoader:
 
 
 
-class TennisPlayerDataLoader:
+class PlayerDataLoader:
     '''
     Create static attributes of a given tennis player, namely
 
@@ -202,7 +200,7 @@ class TennisPlayerDataLoader:
 
 
 
-class TennisPlayer:
+class Player:
     '''
     Attributes
     ----------
@@ -398,7 +396,6 @@ class TennisPlayer:
             .reset_index()
         )
 
-
         
         lower_df, upper_df = proportion_confint(
             stats_by_year[self.success_cols], 
@@ -457,20 +454,22 @@ class TennisPlayer:
                 tbWon = ('tbWon', np.sum),
                 decidingSetPlayed = ('decidingSetPlayed', np.sum),
                 decidingSetWon = ('decidingSetWon', np.sum))
-            .assign(matches_lost = lambda x: x['matches_played'] - x['matches_won'])
-            .assign(win_rate = lambda x: x['matches_won']/x['matches_played'])
-            .assign(perc_ace = lambda x: x['ace']/x['svpt'])
-            .assign(perc_df = lambda x: x['df']/x['svpt'])
-            .assign(perc_firstIn = lambda x: x['firstIn']/x['svpt'])
-            .assign(perc_firstWon = lambda x: x['firstWon']/x['firstIn'])
-            .assign(perc_secondWon = lambda x: x['secondWon']/x['secondIn'])
-            .assign(perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'])
-            .assign(perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'])
-            .assign(perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'])
-            .assign(tbLost = lambda x: x['tbPlayed'] - x['tbWon'])
-            .assign(perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'])
-            .assign(decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'])
-            .assign(perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed'])
+            .assign(
+                matches_lost = lambda x: x['matches_played'] - x['matches_won'],
+                win_rate = lambda x: x['matches_won']/x['matches_played'],
+                perc_ace = lambda x: x['ace']/x['svpt'],
+                perc_df = lambda x: x['df']/x['svpt'],
+                perc_firstIn = lambda x: x['firstIn']/x['svpt'],
+                perc_firstWon = lambda x: x['firstWon']/x['firstIn'],
+                perc_secondWon = lambda x: x['secondWon']/x['secondIn'],
+                perc_returnWon = lambda x: x['returnWon']/x['returnPlayed'],
+                perc_bpConverted = lambda x: x['bpConverted']/x['bpTotal'],
+                perc_bpSaved = lambda x: x['bpSaved']/x['bpFaced'],
+                tbLost = lambda x: x['tbPlayed'] - x['tbWon'],
+                perc_tbWon = lambda x: x['tbWon']/x['tbPlayed'],
+                decidingSetLost = lambda x: x['decidingSetPlayed'] - x['decidingSetWon'],
+                perc_decidingSetWon = lambda x: x['decidingSetWon']/x['decidingSetPlayed']
+            )
             .sort_values('matches_played', ascending=False)
             .reset_index()
         )
@@ -480,7 +479,7 @@ class TennisPlayer:
 
 
 
-class TennisPlayerRenderer(TennisPlayer):
+class PlayerRenderer(Player):
 
     def __init__(self,
                  player_name: str,

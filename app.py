@@ -15,7 +15,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 # Local Imports
-from utils.player import TennisPlayerRenderer, TennisDataLoader, TennisPlayerDataLoader, get_player_name
+from utils.tennis import TennisDataLoader, PlayerDataLoader, PlayerRenderer, get_player_name
 from utils.filter_rows import get_filter_rows
 
 
@@ -75,12 +75,6 @@ If you find any or just want to get in touch with me, please feel free to reach 
 **Support:** I would love to grow the project, if you feel like supporting, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
 """
 
-# **How it Works:** I hope this is straightforward; down below there are a series of possible filters you want to play with. Everything is based upon a selected player, in the sense that only such player statistics will appear. Then:
-
-# - _Player Summary_: Shows rank, rank points, winrate over time and a set of overall statistics as well as some player information.
-# - _Serve & Return_: Shows serve and return statistics over time with a 95% confidence interval and distribution of all selected matches.
-# - _Under Pressure_: Shows under pressure statistics over time with a 95% confidence interval.
-# - _H2H_: Head-to-Head, shows winrate againsts most played opponents.
 
 app.layout = html.Div([
     header,
@@ -164,7 +158,7 @@ def toggle_collapse(n, is_open):
 )
 def select_player(player_name):
 
-    tpdl = TennisPlayerDataLoader(player_name, matches_df, players_df)
+    tpdl = PlayerDataLoader(player_name, matches_df, players_df)
     # Subset selected player matches data
     player_matches = tpdl.player_matches
     player_details = tpdl.player_details
@@ -232,7 +226,7 @@ def render_player(
     y1, y2 = time_period
     time_start, time_end = date(y1, 1, 1), date(y2, 12, 31)
 
-    tp = TennisPlayerRenderer(
+    tp = PlayerRenderer(
             player_name = player_name,
             player_matches = pd.read_json(player_matches),
             player_rank = pd.read_json(player_rank),
@@ -285,7 +279,6 @@ def render_player(
         dt_stats = dash_table.DataTable(
             data=stats.to_dict('records'),
             columns=[{'id': c, 'name': c} for c in stats.columns],
-            sort_action='native',
             style_cell_conditional=[{'if': {'column_id': 'info'}, 'text-align': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header = {'display': 'none'}
@@ -294,14 +287,11 @@ def render_player(
         dt_recent = dash_table.DataTable(
             data=matches.head(15).to_dict('records'),
             columns=[{'id':c, 'name':c} for c in matches.columns],
-            sort_action='native',
             style_cell_conditional=[{'if': {'column_id': 'info'}, 'text-align': 'left'}],
             style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(248, 248, 248)'}],
             style_header={'backgroundColor': 'rgb(230, 230, 230)', 'fontWeight': 'bold'},
-            #page_size=15
         )
 
-        # Create html Div
         div = html.Div([
                 html.Div(
                     className='row',
@@ -363,7 +353,6 @@ def render_player(
                             style={'margin-top': '1%', 'margin-left': '3%'}
                         )
                     ],
-                    #style={}
                 ),
             ])
 
@@ -372,14 +361,16 @@ def render_player(
         
         fig_serve_return = tp.plot_serve_return_stats(columns=serve_return_cols)
 
-        div = html.Div([
-            dcc.Graph(
-                figure=fig_serve_return,
-                id='graph_serve_return',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'height': '95%'}
-            )
-        ], style={'height': f'{400*len(serve_return_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+        div = html.Div(
+                children=[
+                    dcc.Graph(
+                        figure=fig_serve_return,
+                        id='graph_serve_return',
+                        hoverData={'points': [{'customdata': 'Japan'}]},
+                        style={'height': '95%'}
+                    )
+                ], 
+                style={'height': f'{400*len(serve_return_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
         )
 
 
@@ -387,15 +378,17 @@ def render_player(
         
         fig_under_pressure = tp.plot_under_pressure(columns=under_pressure_cols)
 
-        div = html.Div([
-            dcc.Graph(
-                figure=fig_under_pressure,
-                id='graph_under_pressure',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'height': '95%'}
+        div = html.Div(
+                children=[
+                    dcc.Graph(
+                        figure=fig_under_pressure,
+                        id='graph_under_pressure',
+                        hoverData={'points': [{'customdata': 'Japan'}]},
+                        style={'height': '95%'}
+                    )
+                ],
+                style={'height': f'{500*len(under_pressure_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
             )
-        ], style={'height': f'{500*len(under_pressure_cols)}px', 'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-        )
     
     elif tab == 'h2h':
 
@@ -418,19 +411,21 @@ def render_player(
             page_size=20
         )
 
-        div = html.Div([
-            dcc.Graph(
-                figure=fig_h2h,
-                id='h2h_graph',
-                hoverData={'points': [{'customdata': 'Japan'}]},
-                style={'height': '95%'}
-            ),
-            html.Div([
-                html.H3('H2H Statistics', style={'text-align': 'center'}),
-                dt_h2h
-                ], style={'margin-top': '2%', 'margin-left': '5%'})
-        ], style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
-        )
+        div = html.Div(
+                children=[
+                    dcc.Graph(
+                        figure=fig_h2h,
+                        id='h2h_graph',
+                        hoverData={'points': [{'customdata': 'Japan'}]},
+                        style={'height': '95%'}
+                    ),
+                    html.Div([
+                        html.H3('H2H Statistics', style={'text-align': 'center'}),
+                        dt_h2h
+                        ], style={'margin-top': '2%', 'margin-left': '5%'})
+                ],
+                style={'width': '95%', 'display': 'inline-block', 'padding': '0 20'}
+            )
     
     return div
 
