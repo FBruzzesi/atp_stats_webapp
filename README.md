@@ -23,4 +23,4 @@ Therefore I am sure it is possible to find bugs and non-working interactions.
 
 
 ## Get in touch 📫
-You can fine me on [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/).
+You can find me on [Linkedin](https://www.linkedin.com/in/francesco-bruzzesi/).
