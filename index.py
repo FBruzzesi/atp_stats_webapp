@@ -1,24 +1,11 @@
-# Imports
-import pandas as pd
-import numpy as np
-
-from datetime import date, datetime as dt
-import os, re, yaml
-
-import plotly.graph_objects as go, plotly.express as px, plotly.figure_factory as ff
-from plotly.offline import init_notebook_mode
-from plotly.subplots import make_subplots
-
-import dash, dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 # Local Imports
-from app import app, server
+from app import app
 import callbacks
 
-from utils.tennis import TennisDataLoader
 from utils.filter_rows import get_filter_rows
 
 
