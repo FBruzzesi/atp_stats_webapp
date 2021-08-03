@@ -3,7 +3,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 # Local Imports
-from app import app
+from app import app, server
 import callbacks
 
 from utils.filter_rows import get_filter_rows
