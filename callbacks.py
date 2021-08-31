@@ -2,16 +2,17 @@
 import pandas as pd
 import numpy as np
 
-from datetime import date, datetime as dt
-import os, re, yaml
+from datetime import date
+import os, yaml
 
-import dash, dash_table
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 # Local imports 
-from app import app
+from app import app, server
+
 from utils.tennis import TennisDataLoader, PlayerDataLoader, PlayerRenderer, get_player_name
 
 # Load config
@@ -205,6 +206,56 @@ def render_player(
         )
 
         div = html.Div([
+                # First 2 rows got "broken" from css className not working
+                # html.Div(
+                #     className='row',
+                #     children=[
+                #         html.Div(
+                #             className='two columns',
+                #             children=[
+                #                 html.H5('Player Details', style={'text-align': 'center', 'margin-bottom': '3%'}),
+                #                 dt_details
+                #             ],
+                #             style={'margin-top': '5%', 'margin-left': '5%'}
+                #         ),
+                #         html.Div(
+                #             className='nine columns',
+                #             children=[
+                #                 dcc.Graph(
+                #                     figure=fig1,
+                #                     id='graph_summary',
+                #                     hoverData={'points': [{'customdata': 'Japan'}]},
+                #                 ),
+                #             ],
+                #             style={'margin-top': '2%'} 
+                #         ),
+                #     ]
+                # ),
+                # html.Div(
+                #     className='row',
+                #     children=[
+                #         html.Div(
+                #             className='nine columns',
+                #             children=[
+                #                 dcc.Graph(
+                #                     figure=fig2,
+                #                     id='graph_summary',
+                #                     hoverData={'points': [{'customdata': 'Japan'}]},
+                #                 ),
+                #             ],
+                #             style={'margin-top': '-1%', 'width': '75%', 'display': 'inline-block'} 
+                #         ),
+                #         html.Div(
+                #             className='two columns',
+                #             children=[
+                #                 html.H5('Player Statistics', style={'text-align': 'center'}),
+                #                 dt_stats
+                #             ],
+                #             style={'margin-top': '1.5%',}
+                #         ),
+                #     ]
+                # ),
+                # Fast fix from here to ln 295
                 html.Div(
                     className='row',
                     children=[
@@ -214,34 +265,7 @@ def render_player(
                                 html.H5('Player Details', style={'text-align': 'center', 'margin-bottom': '3%'}),
                                 dt_details
                             ],
-                            style={'margin-top': '5%', 'margin-left': '5%'}
-                        ),
-                        html.Div(
-                            className='nine columns',
-                            children=[
-                                dcc.Graph(
-                                    figure=fig1,
-                                    id='graph_summary',
-                                    hoverData={'points': [{'customdata': 'Japan'}]},
-                                ),
-                            ],
-                            style={'margin-top': '2%'} 
-                        ),
-                    ]
-                ),
-                html.Div(
-                    className='row',
-                    children=[
-                        html.Div(
-                            className='nine columns',
-                            children=[
-                                dcc.Graph(
-                                    figure=fig2,
-                                    id='graph_summary',
-                                    hoverData={'points': [{'customdata': 'Japan'}]},
-                                ),
-                            ],
-                            style={'margin-top': '-1%'} 
+                            style={'margin-top': '5%', 'margin-left': '5%', 'width': '40%', 'display': 'inline-block'}
                         ),
                         html.Div(
                             className='two columns',
@@ -249,10 +273,27 @@ def render_player(
                                 html.H5('Player Statistics', style={'text-align': 'center'}),
                                 dt_stats
                             ],
-                            style={'margin-top': '1.5%',}
-                        ),
+                            style={'margin-top': '1.5%', 'margin-left': '10%', 'width': '40%', 'display': 'inline-block'}
+                        )
                     ]
                 ),
+                html.Div(
+                    className='row',
+                    children=[
+                        dcc.Graph(
+                            figure=fig1,
+                            id='graph_summary',
+                            hoverData={'points': [{'customdata': 'Japan'}]},
+                        ),
+                        dcc.Graph(
+                            figure=fig2,
+                            id='graph_summary',
+                            hoverData={'points': [{'customdata': 'Japan'}]},
+                        ),
+                    ],
+                    style={'margin-top': '2%'} 
+                ),
+                # This Row is left unaffected
                 html.Div(
                     className='row',
                     children=[

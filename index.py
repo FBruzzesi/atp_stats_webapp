@@ -1,6 +1,5 @@
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State
 
 # Local Imports
 from app import app, server
@@ -41,7 +40,6 @@ If you find any or just want to get in touch with me, please feel free to reach 
 
 **Support:** I would love to grow the project, if you feel like supporting, you can [buy me a coffee ☕](https://www.buymeacoffee.com/fbruzzesi)
 """
-
 
 app.layout = html.Div([
     header,
