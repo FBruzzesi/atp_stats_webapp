@@ -13,7 +13,7 @@ style_row2 = styles['style_row2']
 style_row3 = styles['style_row3'] 
         
 def get_filter_rows(matches_df, players_df):
-    # First Div Block
+    
     row1 = html.Div(
         id='row1',
         className='row',
@@ -79,7 +79,6 @@ def get_filter_rows(matches_df, players_df):
             ],
         ),
     ])
-
 
     row2 = html.Div(
         id='row2',
@@ -280,8 +279,7 @@ def get_filter_rows(matches_df, players_df):
 #                     style=style_dropdown
 #                 )
 #             ],
-#         ),
-        
+#         ),       
 #     ], 
 #     )
 
@@ -304,5 +302,5 @@ def get_filter_rows(matches_df, players_df):
 #         )
 #     ], 
 #     )
-
+#
 #     return row1, row2, row3
