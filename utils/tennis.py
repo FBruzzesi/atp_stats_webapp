@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 from statsmodels.stats.proportion import proportion_confint
 
-import os, re, yaml
+import os, yaml
 from datetime import date, datetime as dt
 
-from typing import List, Set, Tuple, Dict, Optional
+from typing import List, Dict, Optional
 
 import plotly.graph_objects as go, plotly.express as px, plotly.figure_factory as ff
 from plotly.offline import init_notebook_mode
@@ -68,16 +68,15 @@ class TennisDataLoader:
         sep: str, default ','
             Field delimiter for the input files if type='csv'
         '''
-        
 
         if source == 'parquet':
 
             self.matches = pd.read_parquet(data_path + '/matches.parquet')
-            self.players = pd.read_parquet(data_path + '/players.parquet')
+            self.players = pd.read_parquet(data_path + '/players.parquet').dropna()
 
         elif source == 'csv':
-            self.matches = pd.read_csv(data_path + '/matches.csv', sep = sep)
-            self.players = pd.read_csv(data_path + '/players.csv', sep = sep)
+            self.matches = pd.read_csv(data_path + '/matches.csv', sep=sep)
+            self.players = pd.read_csv(data_path + '/players.csv', sep=sep).dropna()
 
         else:
             raise Exception('Can only load parquet and csv format')
