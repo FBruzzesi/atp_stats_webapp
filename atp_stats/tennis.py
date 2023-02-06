@@ -1,25 +1,27 @@
-import pandas as pd
-import numpy as np
+import polars as pl
+
 from statsmodels.stats.proportion import proportion_confint
 
-import os, yaml
+import os
+import yaml
 from datetime import date, datetime as dt
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
-import plotly.graph_objects as go, plotly.express as px, plotly.figure_factory as ff
-from plotly.offline import init_notebook_mode
+import plotly.graph_objects as go
+import plotly.express as px
+import plotly.figure_factory as ff
 from plotly.subplots import make_subplots
 
 
 with open(os.getcwd() + '/utils/config.yaml') as file:
-    config = yaml.load(file, Loader=yaml.Loader)
+    config = yaml.safe_load(file, Loader=yaml.Loader)
 
 surface_colors = config['surface_colors']
 
 
 
-def timer(f, *args, **kwargs):
+def timer(f):
     '''
     Timer decorator for functions
     '''
@@ -32,206 +34,75 @@ def timer(f, *args, **kwargs):
     return wrapper
     
 
-def get_player_name(name):
+def get_player_name(full_name: str) -> str:
 
-    return '. '.join(['.'.join([e[0] for e in name.split(' ')[:-1]]), name.split(' ')[-1]])
+    name_split = full_name.split(' ')
+    first_names = '.'.join([e[0] for e in name_split[:-1]])
+    last_name = name_split[-1]
 
-
-
-class TennisDataLoader:
-    '''
-    Loads tennis matches data and players details data given both paths and stores them in 
-    self.matches and self.players
-
-    Attributes
-    ----------
-    self.matches: pd.DataFrame
-        dataframe containing all the players matches
-    self.players: pd.DataFrame
-        dataframe containing all the players details
-    self.matches_path: str
-        path where self.matches is read from
-    self.players_path: str
-        path where self.players is read from
-    '''
-
-    def __init__(self, data_path: str, source='parquet', sep=','):
-        '''
-        Loads and stores matches and players data
-
-        Parameters
-        ----------
-        data_path: str
-            path of data
-        type: str, default 'parquet' 
-            Type of extention: one between 'parquet' or 'csv'. 
-        sep: str, default ','
-            Field delimiter for the input files if type='csv'
-        '''
-
-        if source == 'parquet':
-
-            self.matches = pd.read_parquet(data_path + '/matches.parquet')
-            self.players = pd.read_parquet(data_path + '/players.parquet').dropna()
-
-        elif source == 'csv':
-            self.matches = pd.read_csv(data_path + '/matches.csv', sep=sep)
-            self.players = pd.read_csv(data_path + '/players.csv', sep=sep).dropna()
-
-        else:
-            raise Exception('Can only load parquet and csv format')
-
-
-    def __repr__(self):
-        
-        n_matches = self.matches.shape[0]
-        n_players = self.players.shape[0]
-
-        return f'TennisDataLoader storing {n_matches} matches and {n_players} players data'
-
-
-
-
-class PlayerDataLoader:
-    '''
-    Create static attributes of a given tennis player, namely
-
-    Attributes
-    ----------
-    player_name: str
-        Tennis player name
-    matches: pd.DataFrame
-        Dataframe containing all matches the player played in his/her career
-    n_matches: int
-        Number of matches the player played in his/her career
-    rank_df: pd.DataFrame
-        Dataframe containing time series of player rank and rank points over time
-    player_details: pd.DataFrame
-        Dataframe containing player details
-
-    Methods
-    -------
-    get_rank
-        Calculates time series of player rank and rank points
-    get_player_details
-        Retrieves player details from matches and players information dataframes
-    
-    '''
-    def __init__(self, 
-                player_name: str, 
-                player_matches: pd.DataFrame, 
-                player_details: pd.DataFrame
-                ):
-        '''
-        Parameters
-        ----------
-        player_name: str
-            Tennis player name
-        tdl: TennisDataLoader
-            TennisDataLoader instance
-        '''
-        self.player_name = player_name
-        player_details = player_details[player_details['player_name']==player_name]
-    
-        self.player_id = player_details.iloc[0]['id']
-
-        self.player_matches = (player_matches.loc[player_matches['id']==self.player_id]
-                                .sort_values(['tourney_date', 'match_num'])
-                            )
-
-        self.n_matches = self.player_matches.shape[0]
-        self.player_rank = self.get_rank()
-        self.player_details = self.get_player_details(player_details)
-
-
-    def get_rank(self):
-        '''
-        Calculate time series of player rank and rank points
-        
-        Returns
-        -------
-        rank_df: pd.DataFrame
-            rank and rank points over time
-        '''
-        
-        rank_df = (self.player_matches
-                    .groupby('year')
-                    .agg(rank = ('rank', np.min))
-                    .dropna()
-                    .astype(int)
-                    .reset_index()
-        )
-
-        return rank_df
-
-
-    def get_player_details(self, player_details):
-        '''
-        Retrieves player details
-
-        Returns
-        -------
-        player_details: pd.DataFrame
-            Dataframe containing player details
-        '''
-        
-        age = np.round((date.today() - pd.to_datetime(player_details['birthdate']).dt.date).dt.days/365.25, 2)
-
-        player_details = (player_details
-                            .assign(
-                                age = age,
-                                hand = self.player_matches['hand'].max(),
-                                height = self.player_matches['ht'].max(skipna=False),
-                                best_rank = self.player_rank['rank'].min()
-                            )
-        )
-
-        cols = ['player_name', 'best_rank', 'country_code', 'birthdate', 'age', 'hand', 'height']
-        player_details['birthdate'] = player_details['birthdate'].astype('datetime64[ns]').dt.strftime('%d %b %Y')
-        player_details = player_details[cols].T.reset_index()
-
-        return player_details
-
-
+    return '. '.join([first_names, last_name])
 
 
 class Player:
-    '''
-    Attributes
-    ----------
-    player_name: str
-        Name of the tennis player
-    player_matches: pd.DataFrame
-        Dataframe containing all player matches
-    player_details: pd.DataFrame
-        Dataframe containing player information
-    filters: Dict
-        Dictionary containing filters to select matches
-    selected_matches: pd.DataFrame
-        Dataframe containing matches after applying filters
-    n_matches: int
-        Number of selected_matches
-    player_rank: pd.DataFrame
-        Dataframe containing player ranking time series
-    
+    """Create player by parsing matches and players dataframe"""
 
-    Methods
-    -------
-    '''
+    def __init__(self, player_name: str, matches: pl.DataFrame, players: pl.DataFrame):
+        """
+        Arguments:
+            player_name: name of the player
+            matches: dataframe of all matches
+            players: dataframe of all players
+        """
+
+        self.player_name: str = player_name
+
+        player_details: Dict = (players
+            .filter(pl.col("player_name")==player_name)
+            .to_dicts()[0]
+        )
+        
+        self.pid: int = player_details["id"]
+
+        self.player_matches: pl.DataFrame = (matches
+            .filter(pl.col("id")==self.pid)
+            .sort(["tourney_date", "match_num"])
+        )
+
+        self.n_matches: int = self.player_matches.shape[0]
+
+        self.ranks: pl.DataFrame = (self.player_matches
+            .groupby('year')
+            .agg([pl.col("rank").min().cast(pl.UInt16)])
+            .sort("year")
+        )
+
+        self.player_details = {
+            **player_details, 
+            **{
+                "age": round((date.today()-player_details['birthdate']).days/365.25, 2),
+                "best_rank": self.ranks.select(pl.min("rank")).to_dicts()[0]["rank"],
+                "birthdate": player_details['birthdate'].strftime('%d %b %Y')
+            }
+        }
+        
+
+class SelectedPlayer:
+    """TODO"""
+
     def __init__(self, 
-                 player_name: str,
-                 player_matches: pd.DataFrame,
-                 player_rank: pd.DataFrame,
-                 player_details: pd.DataFrame,
-                 time_start: Optional[date] = None,
-                 time_end: Optional[date] = None,
-                 surfaces: Optional[List[str]] = None,
-                 tourney_levels: Optional[List[str]] = None,
-                 tournaments: Optional[List[str]] = None,
-                 opponents: Optional[List[str]] = None,
-                 rounds: Optional[List[str]] = None,
-                 opponent_ranks: Optional[int] = None,
-                 ):
+        player_name: str,
+        matches: pl.DataFrame,
+        ranks: pl.DataFrame,
+        player_details: pd.DataFrame,
+        time_start: Optional[date] = None,
+        time_end: Optional[date] = None,
+        surfaces: Optional[List[str]] = None,
+        tourney_levels: Optional[List[str]] = None,
+        tournaments: Optional[List[str]] = None,
+        opponents: Optional[List[str]] = None,
+        rounds: Optional[List[str]] = None,
+        opponent_ranks: Optional[int] = None,
+        ):
 
         
         self.player_name = player_name
