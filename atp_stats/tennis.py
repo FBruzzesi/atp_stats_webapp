@@ -14,10 +14,17 @@ import yaml
 from plotly.subplots import make_subplots
 from scipy import stats
 
-with open(os.getcwd() + "/utils/config.yaml") as file:
-    config = yaml.safe_load(file, Loader=yaml.Loader)
+# with open(os.getcwd() + "/utils/config.yaml") as file:
+#     config = yaml.safe_load(file, Loader=yaml.Loader)
 
-surface_colors = config["surface_colors"]
+# surface_colors = config["surface_colors"]
+
+surface_colors = {
+    "Clay": "firebrick",
+    "Grass": "seagreen",
+    "Hard": "midnightblue",
+    "Carpet": "limegreen",
+}
 
 
 def get_player_name(full_name: str) -> str:
@@ -30,7 +37,7 @@ def get_player_name(full_name: str) -> str:
 
 
 def proportion_confint(
-    count: npt.ArrayLike, nobs: np.ArrayLike, alpha: float = 0.05
+    count: npt.ArrayLike, nobs: npt.ArrayLike, alpha: float = 0.05
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Fork of proportion_confint from statsmodels at
@@ -298,7 +305,7 @@ class FilteredPlayer:
         Calculate statistics aggregated by year
         """
 
-        stats_by_year = SelectedPlayer._aggregate_stats(
+        stats_by_year = FilteredPlayer._aggregate_stats(
             selected_matches, level="year"
         ).sort("year")
 
@@ -335,15 +342,17 @@ class FilteredPlayer:
     @staticmethod
     def get_h2h(selected_matches: pl.DataFrame) -> pl.DataFrame:
 
-        h2h = SelectedPlayer._aggregate_stats(
-            selected_matches, level="opponent_name"
-        ).sort("matches_played", reverse=True)
+        h2h = (
+            FilteredPlayer._aggregate_stats(selected_matches, level="opponent_name")
+            .sort("matches_played", reverse=True)
+            .head(15)  # 15 most frequent opponents
+        )
 
         return h2h
 
     @property
     def success_cols(self) -> List[str]:
-
+        # TODO: move outside
         return [
             "ace",
             "df",
@@ -359,7 +368,7 @@ class FilteredPlayer:
 
     @property
     def total_cols(self) -> List[str]:
-
+        # TODO: move outside
         return [
             "svpt",
             "svpt",
@@ -375,47 +384,52 @@ class FilteredPlayer:
 
     def __repr__(self):
 
-        return f"{self.player_name}, number of matches: {self.n_matches}"
+        return f"{self.name}, number of matches: {self.n_matches}"
 
 
-class PlayerRenderer(FilteredPlayer):
-    def __init__(
-        self,
-        player_name: str,
-        player_matches: pd.DataFrame,
-        player_rank: pd.DataFrame,
-        player_details: pd.DataFrame,
-        time_start: Optional[date] = None,
-        time_end: Optional[date] = None,
-        surfaces: Optional[List[str]] = None,
-        tourney_levels: Optional[List[str]] = None,
-        tournaments: Optional[List[str]] = None,
-        opponents: Optional[List[str]] = None,
-        rounds: Optional[List[str]] = None,
-        opponent_ranks: Optional[int] = None,
-    ):
+class Renderer:
+    def __init__(self, player: FilteredPlayer):
 
-        super().__init__(
-            player_name,
-            player_matches,
-            player_rank,
-            player_details,
-            time_start,
-            time_end,
-            surfaces,
-            tourney_levels,
-            tournaments,
-            opponents,
-            rounds,
-            opponent_ranks,
-        )
+        self.player = player
 
-        self.colors = [
+        self._colors = [
             "rgb(33,113,181)",
             "rgb(217,71,1)",
             "rgb(81, 178, 124)",
             "rgb(235, 127, 134)",
         ] * 2
+
+    @property
+    def selected_matches(self):
+        return self.player.selected_matches
+
+    @property
+    def n_matches(self):
+        return self.player.n_matches
+
+    @property
+    def selected_ranks(self):
+        return self.player.selected_ranks
+
+    @property
+    def stats_by_year(self):
+        return self.player.stats_by_year
+
+    @property
+    def lower_df(self):
+        return self.player.lower_df
+
+    @property
+    def upper_df(self):
+        return self.player.upper_df
+
+    @property
+    def surface_wl(self):
+        return self.player.surface_wl
+
+    @property
+    def h2h(self):
+        return self.player.h2h
 
     def plot_summary(self):
 
@@ -424,9 +438,9 @@ class PlayerRenderer(FilteredPlayer):
         )
 
         # Add Rank over time
-        x1 = self.player_rank["year"].to_numpy()
-        y1 = self.player_rank["rank"].to_numpy()
-        y2 = self.player_rank["tourney_won"].to_numpy()
+        x1, y1, y2 = (
+            self.selected_ranks.select(["year", "rank", "tourney_won"]).to_numpy().T
+        )
 
         fig1.add_trace(
             go.Scatter(
@@ -490,10 +504,13 @@ class PlayerRenderer(FilteredPlayer):
 
         # Add Winrate over time
 
-        x2 = self.stats_by_year["year"]
-        b1 = self.stats_by_year["matches_won"].to_numpy().astype(int)
-        b2 = self.stats_by_year["matches_lost"].to_numpy().astype(int)
-        wr = 100 * self.stats_by_year["win_rate"].to_numpy().astype(float)
+        x2, b1, b2, wr = (
+            self.stats_by_year.select(
+                ["year", "matches_won", "matches_lost", 100 * pl.col("win_rate")]
+            )
+            .to_numpy()
+            .T
+        )
 
         fig2.add_trace(
             go.Bar(
@@ -533,7 +550,7 @@ class PlayerRenderer(FilteredPlayer):
                 name="Win Rate",
                 line={"color": "midnightblue", "width": 2},
                 mode="lines+text",
-                text=[str(p) + "%" for i, p in enumerate(np.round(wr, 2))],
+                text=[str(p) + "%" for p in np.round(wr, 2)],
                 textposition="top center",
                 textfont_size=8,
             ),
@@ -541,20 +558,6 @@ class PlayerRenderer(FilteredPlayer):
             row=1,
             col=1,
         )
-
-        # Plot Radar
-        # s = self.perc_overall.drop(['perc_ace', 'perc_df'])
-
-        # fig2.add_trace(
-        #     go.Scatterpolar(
-        #         r=s.to_numpy()[::-1],
-        #         theta=[ '%' + c.split('_')[-1] for c in s.index][::-1],
-        #         fill='toself',
-        #         name='Stat %',
-        #         marker={'color': 'orangered'},
-        #     ),
-        #     row=1, col=2
-        # )
 
         fig2.update_layout(
             height=500,
@@ -580,7 +583,7 @@ class PlayerRenderer(FilteredPlayer):
             yaxis1={
                 "range": [
                     0,
-                    self.stats_by_year[["matches_won", "matches_lost"]].sum(axis=1).max()
+                    int(self.stats_by_year.select(pl.max("matches_played")).to_numpy())
                     + 15,
                 ],
                 "title": "Number of Matches",
@@ -590,10 +593,10 @@ class PlayerRenderer(FilteredPlayer):
 
         return fig1, fig2
 
-    def plot_surface_wl(self, surface_colors: Dict = surface_colors):
+    def plot_surface_wl(self, surface_colors: Dict[str, str] = surface_colors):
 
         fig = px.sunburst(
-            data_frame=self.surface_wl,
+            data_frame=self.surface_wl.to_pandas(),
             path=["surface", "result"],
             values="cnt",
             names="cnt",
@@ -616,17 +619,26 @@ class PlayerRenderer(FilteredPlayer):
 
         return fig
 
-    def plot_serve_return_stats(self, columns):
+    def plot_serve_return_stats(self, columns: List[str]):
 
-        m = self.selected_matches
-        stats_by_year = self.stats_by_year
-        upper_df = self.upper_df
-        lower_df = self.lower_df
+        y_dist = (
+            100
+            * self.selected_matches.select([f"perc_{c}" for c in columns]).to_numpy().T
+        )
+        x, *y_stats = (
+            self.stats_by_year.select(
+                ["year"] + [(pl.col(f"perc_{c}") * 100) for c in columns]
+            )
+            .to_numpy()
+            .T
+        )
+        y_lower = 100 * self.lower_df.select([f"lower_{c}" for c in columns]).to_numpy().T
+        y_upper = 100 * self.upper_df.select([f"upper_{c}" for c in columns]).to_numpy().T
 
-        colors = self.colors
+        colors = self._colors
 
         n_cols, n_rows = 2, len(columns)
-        specs = [[{}, {}]] * n_rows
+
         subplot_titles = [
             [
                 f"Percentage {c[0].upper() + c[1:]} and 95% CI by year",
@@ -638,7 +650,7 @@ class PlayerRenderer(FilteredPlayer):
         fig = make_subplots(
             cols=n_cols,
             rows=n_rows,
-            specs=specs,
+            specs=[[{}, {}]] * n_rows,
             shared_xaxes=False,
             vertical_spacing=0.05,
             horizontal_spacing=0.05,
@@ -646,14 +658,13 @@ class PlayerRenderer(FilteredPlayer):
             column_widths=[0.7, 0.3],
         )
 
-        x = stats_by_year["year"]
-
         for i, col in enumerate(columns):
 
+            # Upper bound
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * upper_df[f"upper_{col}"],
+                    y=y_upper[i],
                     name=f"{col} upper bound",
                     fill=None,
                     mode="lines",
@@ -663,10 +674,11 @@ class PlayerRenderer(FilteredPlayer):
                 col=1,
             )
 
+            # Lower Bound
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * lower_df[f"lower_{col}"],
+                    y=y_lower[i],
                     name=f"{col} lower bound",
                     fill="tonexty",
                     mode="lines",
@@ -676,10 +688,11 @@ class PlayerRenderer(FilteredPlayer):
                 col=1,
             )
 
+            # Realized
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * stats_by_year[f"perc_{col}"],
+                    y=y_stats[i],
                     textposition="top center",
                     name=col,
                     mode="lines+markers",
@@ -690,10 +703,11 @@ class PlayerRenderer(FilteredPlayer):
                 col=1,
             )
 
-            tmp_data = 100 * m[f"perc_{col}"].dropna().to_numpy()
+            # Distribution
+            c_dist = y_dist[i]
             hist, kde = ff.create_distplot(
-                [tmp_data],
-                bin_size=(tmp_data.max() - tmp_data.min()) / 50,
+                [c_dist],
+                bin_size=(c_dist.max() - c_dist.min()) / 50,
                 group_labels=[col],
                 show_rug=False,
                 colors=[colors[i]],
@@ -701,7 +715,6 @@ class PlayerRenderer(FilteredPlayer):
             )["data"]
 
             fig.add_trace(hist, row=i + 1, col=2)
-
             fig.add_trace(kde, row=i + 1, col=2)
 
         # Layout
@@ -724,19 +737,25 @@ class PlayerRenderer(FilteredPlayer):
 
         return fig
 
-    def plot_boxplot_distribution(self, columns):
+    def plot_boxplot_distribution(self, columns: List[str]):
 
-        m = self.selected_matches
-        colors = self.colors
+        yrs, *y_dist = (
+            self.selected_matches.select(
+                ["year"] + [(pl.col(f"perc_{c}") * 100) for c in columns]
+            )
+            .to_numpy()
+            .T
+        )
+
+        colors = self._colors
 
         n_cols, n_rows = 2, len(columns)
-        specs = [[{}, {}]] * n_rows
         subplot_titles = [[f"{c} Boxplot", f"{c} Distplot"] for c in columns]
 
         fig = make_subplots(
             cols=n_cols,
             rows=n_rows,
-            specs=specs,
+            specs=[[{}, {}]] * n_rows,
             shared_xaxes=True,
             shared_yaxes=True,
             vertical_spacing=0.08,
@@ -748,14 +767,14 @@ class PlayerRenderer(FilteredPlayer):
         for i, col in enumerate(columns):
 
             fig.add_trace(
-                go.Box(x=m["year"], y=m[f"perc_{col}"], marker_color=colors[i]),
+                go.Box(x=yrs, y=y_dist[i], marker_color=colors[i]),
                 row=i + 1,
                 col=1,
             )
 
             hist, kde = ff.create_distplot(
-                [m[f"perc_{col}"].to_numpy()],
-                bin_size=0.015,
+                [y_dist[i]],
+                bin_size=1.5,
                 group_labels=[col],
                 show_rug=False,
                 colors=[colors[i]],
@@ -777,7 +796,6 @@ class PlayerRenderer(FilteredPlayer):
             kde_ = go.Scatter(x=kde["y"], y=kde["x"], marker_color=colors[i])
 
             fig.add_trace(hist_, row=i + 1, col=2)
-
             fig.add_trace(kde_, row=i + 1, col=2)
 
         # Layout
@@ -794,17 +812,21 @@ class PlayerRenderer(FilteredPlayer):
 
         return fig
 
-    def plot_under_pressure(self, columns):
+    def plot_under_pressure(self, columns: List[str]):
 
-        # m = self.selected_matches
-        stats_by_year = self.stats_by_year
-        upper_df = self.upper_df
-        lower_df = self.lower_df
+        x, *y_stats = (
+            self.stats_by_year.select(
+                ["year"] + [(pl.col(f"perc_{c}") * 100) for c in columns]
+            )
+            .to_numpy()
+            .T
+        )
+        y_lower = 100 * self.lower_df.select([f"lower_{c}" for c in columns]).to_numpy().T
+        y_upper = 100 * self.upper_df.select([f"upper_{c}" for c in columns]).to_numpy().T
 
-        colors = self.colors
+        colors = self._colors
 
         n_cols, n_rows = 1, len(columns)
-        specs = [[{}]] * n_rows
         subplot_titles = [
             f"Percentage {c[0].upper() + c[1:]} and 95% CI by year" for c in columns
         ]
@@ -812,21 +834,20 @@ class PlayerRenderer(FilteredPlayer):
         fig = make_subplots(
             cols=n_cols,
             rows=n_rows,
-            specs=specs,
+            specs=[[{}]] * n_rows,
             shared_xaxes=True,
             vertical_spacing=0.1,
             horizontal_spacing=0.05,
             subplot_titles=subplot_titles,
         )
 
-        x = stats_by_year["year"]
-
         for i, col in enumerate(columns):
 
+            # Upper bound
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * upper_df[f"upper_{col}"],
+                    y=y_upper[i],
                     name=f"{col} upper bound",
                     fill=None,
                     mode="lines",
@@ -836,10 +857,11 @@ class PlayerRenderer(FilteredPlayer):
                 col=1,
             )
 
+            # Lower bound
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * lower_df[f"lower_{col}"],
+                    y=y_lower[i],
                     name=f"{col} lower bound",
                     fill="tonexty",
                     mode="lines",
@@ -852,7 +874,7 @@ class PlayerRenderer(FilteredPlayer):
             fig.add_trace(
                 go.Scatter(
                     x=x,
-                    y=100 * stats_by_year[f"perc_{col}"],
+                    y=y_stats[i],
                     textposition="top center",
                     name=col,
                     mode="lines+markers",
@@ -878,12 +900,13 @@ class PlayerRenderer(FilteredPlayer):
 
     def plot_h2h(self):
 
-        h2h = self.h2h.iloc[:15]
-
-        x = h2h["opponent_name"]
-        b1 = h2h["matches_won"]
-        b2 = h2h["matches_played"] - h2h["matches_won"]
-        wr = 100 * h2h["win_rate"]
+        x, b1, b2, wr = (
+            self.h2h.select(
+                ["opponent_name", "matches_won", "matches_lost", 100 * pl.col("win_rate")]
+            )
+            .to_numpy()
+            .T
+        )
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -921,7 +944,7 @@ class PlayerRenderer(FilteredPlayer):
                 name="Win Rate",
                 line={"color": "midnightblue", "width": 2},
                 mode="markers+text",
-                text=[str(p) + "%" for i, p in enumerate(np.round(wr, 2))],
+                text=[str(p) + "%" for p in np.round(wr.astype(float), 2)],
                 textposition="top center",
                 textfont_size=8,
             ),
@@ -951,3 +974,6 @@ class PlayerRenderer(FilteredPlayer):
         )
 
         return fig
+
+
+# TODO: refactor plot_serve_return_stats and plot_under_pressure since they produce the same left fig
