@@ -1,8 +1,7 @@
 import os
 
-import dash_core_components as dcc
-import dash_html_components as html
 import yaml
+from dash import dcc, html
 
 with open(os.getcwd() + "/utils/styles.yaml") as file:
     styles = yaml.load(file, Loader=yaml.Loader)

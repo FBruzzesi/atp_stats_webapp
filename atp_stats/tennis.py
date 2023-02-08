@@ -1,23 +1,16 @@
-import os
 from datetime import date
 from functools import reduce
 from operator import and_
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import numpy.typing as npt
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 import polars as pl
-import yaml
 from plotly.subplots import make_subplots
-from scipy import stats
 
-# with open(os.getcwd() + "/utils/config.yaml") as file:
-#     config = yaml.safe_load(file, Loader=yaml.Loader)
-
-# surface_colors = config["surface_colors"]
+from .utils import proportion_confint
 
 surface_colors = {
     "Clay": "firebrick",
@@ -25,49 +18,6 @@ surface_colors = {
     "Hard": "midnightblue",
     "Carpet": "limegreen",
 }
-
-
-def get_player_name(full_name: str) -> str:
-
-    name_split = full_name.split(" ")
-    first_names = ".".join([e[0] for e in name_split[:-1]])
-    last_name = name_split[-1]
-
-    return ". ".join([first_names, last_name])
-
-
-def proportion_confint(
-    count: npt.ArrayLike, nobs: npt.ArrayLike, alpha: float = 0.05
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Fork of proportion_confint from statsmodels at
-    https://www.statsmodels.org/dev/_modules/statsmodels/stats/proportion.html#proportion_confint
-
-    Remark that various checks and transformation steps are skipped.
-    Confidence interval for a binomial proportion using Wilson method
-
-    Arguments
-        count: number of successes, can be pandas Series or DataFrame. Arrays must contain integer values.
-        nobs: total number of trials.  Arrays must contain integer values.
-        alpha: Significance level, default 0.05. Must be in (0, 1)
-
-    Returns
-        ci_low: lower confidence level with coverage (approximately) 1-alpha.
-        ci_upp: upper confidence level with coverage (approximately) 1-alpha.
-    """
-    q_ = count / nobs
-
-    # method == "wilson"
-    crit = stats.norm.isf(alpha / 2.0)
-    crit2 = crit**2
-    denom = 1 + crit2 / nobs
-    center = (q_ + crit2 / (2 * nobs)) / denom
-    dist = crit * np.sqrt(q_ * (1.0 - q_) / nobs + crit2 / (4.0 * nobs**2))
-    dist /= denom
-    ci_low = center - dist
-    ci_upp = center + dist
-
-    return ci_low, ci_upp
 
 
 class Player:
@@ -151,7 +101,7 @@ class FilteredPlayer:
         self.surface_wl = self.get_surface_winloss(self.selected_matches)
         self.h2h = self.get_h2h(self.selected_matches)
 
-        # WIP
+        # TODO: Do we need this functionality? Probably deprecated!
         # self.get_overall_stats()
 
     @property
