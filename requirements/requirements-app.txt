@@ -1,0 +1,4 @@
+dash==2.8.1
+dash-renderer==1.9.1
+dash-table
+gunicorn
