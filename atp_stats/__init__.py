@@ -1,3 +1,3 @@
-from tennis import FilteredPlayer, Player, Renderer
+from .tennis import Player, Renderer
 
-__all__ = ("Player", "FilteredPlayer", "Renderer")
+__all__ = ("Player", "Renderer")

@@ -6,7 +6,9 @@ from scipy import stats
 
 
 def get_player_name(full_name: str) -> str:
-
+    """
+    Abbreviates player name from "First Name Surname" to "F.N. Surname
+    """
     name_split = full_name.split(" ")
     first_names = ".".join([e[0] for e in name_split[:-1]])
     last_name = name_split[-1]
@@ -25,8 +27,8 @@ def proportion_confint(
     Confidence interval for a binomial proportion using Wilson method
 
     Arguments
-        count: number of successes, can be pandas Series or DataFrame. Arrays must contain integer values.
-        nobs: total number of trials.  Arrays must contain integer values.
+        count: number of successes (array must be integer values).
+        nobs: total number of trials (array must contain integer values).
         alpha: Significance level, default 0.05. Must be in (0, 1)
 
     Returns
