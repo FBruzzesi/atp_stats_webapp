@@ -9,11 +9,11 @@ clean-folders:
 	rm -rf site build dist htmlcov .coverage
 
 interrogate:
-	interrogate -vv --ignore-nested-functions --ignore-module --ignore-init-method --ignore-private --ignore-magic --ignore-property-decorators --fail-under=90 app atp_stats
+	interrogate -vv --ignore-nested-functions --ignore-module --ignore-init-method --ignore-private --ignore-magic --ignore-property-decorators --fail-under=90 webapp atp_stats
 
 style:
-	isort --profile black -l 90 app atp_stats
-	black --target-version py38 --line-length 90 app atp_stats
+	isort --profile black -l 90 webapp atp_stats
+	black --target-version py38 --line-length 90 webapp atp_stats
 
 test:
 	pytest tests -vv

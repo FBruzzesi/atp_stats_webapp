@@ -1,13 +1,12 @@
 import os
-from dash import dcc, html
+
 import dash_bootstrap_components as dbc
 import polars as pl
-
+from dash import dcc, html
 from filter_rows import get_filter_rows
 
-
 intro = open("webapp/intro.md", "r").read()
-data_path = os.getcwd() + '/data'
+data_path = os.getcwd() + "/data"
 
 matches = pl.read_parquet(data_path + "/matches.parquet")
 players = pl.read_parquet(data_path + "/players.parquet")
@@ -55,13 +54,8 @@ support = dbc.Button(
 )
 
 social_container = dbc.Container(
-        id="social",
-        children=[
-            github,
-            report_bug,
-            linkedin,
-            support]
-    )
+    id="social", children=[github, report_bug, linkedin, support]
+)
 # Header Container
 header = html.Div(
     id="app-header",
@@ -69,20 +63,32 @@ header = html.Div(
         dbc.Row(
             children=[
                 dbc.Col(
-                    children=[html.Div([html.H3(["ATP Statistics ", html.I(className="bi bi-pencil-square")])], id="app-title")],
+                    children=[
+                        html.Div(
+                            [
+                                html.H3(
+                                    [
+                                        "ATP Statistics ",
+                                        html.I(className="bi bi-pencil-square"),
+                                    ]
+                                )
+                            ],
+                            id="app-title",
+                        )
+                    ],
                     align="center",
                     width={"offset": 4},
-                    style={"margin-top": 20}
+                    style={"margin-top": 20},
                 ),
                 dbc.Col(
                     children=social_container,
                     align="center",
                     width={"size": 5, "offset": 7},
-                    style={"margin-top": -35}
+                    style={"margin-top": -35},
                 ),
             ],
         )
-    ]
+    ],
 )
 
 

@@ -1,10 +1,9 @@
 import os
-import yaml
 from typing import Tuple
-from dash import dcc, html
 
 import polars as pl
-
+import yaml
+from dash import dcc, html
 
 with open(os.getcwd() + "/webapp/styles.yaml") as file:
     styles = yaml.load(file, Loader=yaml.Loader)
@@ -34,7 +33,9 @@ def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div
                         id="player_name",
                         options=[
                             {"label": str(n), "value": str(n)}
-                            for n in players.select(pl.col("player_name").unique()).to_series().sort()
+                            for n in players.select(pl.col("player_name").unique())
+                            .to_series()
+                            .sort()
                         ],
                         value="Roger Federer",
                         clearable=False,

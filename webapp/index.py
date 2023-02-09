@@ -2,14 +2,13 @@
 # $ gunicorn --bind 0.0.0.0:8080 --pythonpath webapp index:server
 
 import argparse
-from dash import html
+
+import callbacks  # TODO: Refactor callbacks before importing
 
 # Local imports
 from app import app, server
-import callbacks # TODO: Refactor callbacks before importing
-
+from dash import html
 from layout import header, layout
-
 
 # App layout
 app.layout = html.Div(
@@ -26,9 +25,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-p", "--port", type=int, default=8080, help="server port")
-    parser.add_argument(
-        "-hs", "--host", type=str, default="0.0.0.0", help="server host"
-    )
+    parser.add_argument("-hs", "--host", type=str, default="0.0.0.0", help="server host")
     parser.add_argument(
         "-d",
         "--debug",

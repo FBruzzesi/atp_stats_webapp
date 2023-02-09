@@ -1,19 +1,18 @@
 # Imports
 import json
-
 import os
 import sys
-from datetime import date
-
-from dash import dash_table, dcc, html
+from datetime import date, datetime
 
 import numpy as np
+import pandas as pd
 import polars as pl
 import yaml
-from dash.dependencies import Input, Output, State
 
 # Local imports
 from app import app
+from dash import dash_table, dcc, html
+from dash.dependencies import Input, Output, State
 
 sys.path.append("..")
 from atp_stats import Player, Renderer
@@ -39,17 +38,26 @@ data_path = os.getcwd() + "/data"
 all_matches = pl.read_parquet(data_path + "/matches.parquet")
 all_players = pl.read_parquet(data_path + "/players.parquet")
 
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
+
 # CALLBACKS
-@app.callback(
-    [Output("open_state", "children"), Output("open_details", "children")],
-    [Input("open_details", "n_clicks")],
-    [State("open_state", "children")],
-)
-def toggle_collapse(n, is_open):
-    if n:
-        open_det = "Close Description" if not is_open else "Open Description"
-        return [not is_open, open_det]
-    return [is_open, "Close Description"]
+# @app.callback(
+#     [Output("open_state", "children"), Output("open_details", "children")],
+#     [Input("open_details", "n_clicks")],
+#     [State("open_state", "children")],
+# )
+# def toggle_collapse(n, is_open):
+#     if n:
+#         open_det = "Close Description" if not is_open else "Open Description"
+#         return [not is_open, open_det]
+#     return [is_open, "Close Description"]
 
 
 # Select Player and update all other filters field
@@ -80,36 +88,30 @@ def select_player(player_name: str):
     info = player.info
     ranks = player.ranks
 
-    yr_min, yr_max = (matches
-        .select([
-            pl.min("year").alias("min"), 
-            pl.max("year").alias("max")
-        ])
-        .to_numpy().squeeze()
+    yr_min, yr_max = (
+        matches.select([pl.min("year").alias("min"), pl.max("year").alias("max")])
+        .to_numpy()
+        .squeeze()
     )
+    yr_min, yr_max = int(yr_min), int(yr_max)
 
     yr_marks = {
-        (i): {"label": str(i), "style": {"transform": "rotate(45deg)"}}
-        for i in range(yr_min, yr_max + 1, 1)
+        i: {"label": str(i), "style": {"transform": "rotate(45deg)"}}
+        for i in range(yr_min, yr_max + 1)
     }
 
     yr_value = [yr_min, yr_max]
 
-    surfaces = matches.select([pl.col("surface").unique()]).to_series()
-    surfaces_opt = [
-        {"label": s, "value": s} 
-        for s in surfaces
-        ]
+    surfaces = tuple(matches.select([pl.col("surface").unique()]).to_series())
+    surfaces_opt = [{"label": s, "value": s} for s in surfaces]
 
-    tourney_levels = matches.select([pl.col("tourney_level").unique()]).to_series()
+    tourney_levels = tuple(matches.select([pl.col("tourney_level").unique()]).to_series())
     tourney_levels_opt = [
-        {"label": tourney_level_map[tl], "value": tl} 
-        for tl in tourney_levels
+        {"label": tourney_level_map[tl], "value": tl} for tl in tourney_levels
     ]
 
-
     tourney_opt = [
-        {"label": t, "value": t} 
+        {"label": t, "value": t}
         for t in matches.select([pl.col("tourney_name").unique()]).to_series().sort()
     ]
     opponents_opt = [
@@ -117,12 +119,16 @@ def select_player(player_name: str):
         for o in matches.select([pl.col("opponent_name").unique()]).to_series().sort()
     ]
 
-    rounds_opt = [r for r in rounds if r["value"] in matches.select([pl.col("round").unique()]).to_series()]
+    rounds_opt = [
+        r
+        for r in rounds
+        if r["value"] in matches.select([pl.col("round").unique()]).to_series()
+    ]
 
     return [
-        matches.to_pandas().to_json(date_format="iso"),  # TODO: Check if directly from polars
-        json.dump(info),
-        ranks.to_pandas().to_json(date_format="iso"),  # TODO: Check if directly from polars
+        matches.to_pandas().to_json(date_format="iso"),  # TODO: directly from polars?
+        pd.DataFrame(info, index=[0]).to_json(date_format="iso"),  # FIXME: avoid pandas?
+        ranks.to_pandas().to_json(date_format="iso"),  # TODO: directly from polars
         yr_min,
         yr_max,
         yr_marks,
