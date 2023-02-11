@@ -27,45 +27,62 @@ class Player:
     filtering on the player name
     """
 
-    def __init__(self, name: str, matches: pl.DataFrame, players: pl.DataFrame):
+    def __init__(self,
+        name: str,
+        matches: pl.DataFrame,
+        info: Dict
+        ):
         """
         Arguments:
-            player_name: name of the player
-            matches: dataframe of all matches
-            players: dataframe of all players
+            name: name of the player
+            matches: dataframe of player matches
+            info: dict containing player info as in 
+                https://github.com/JeffSackmann/tennis_atp/blob/master/atp_players.csv
         """
 
         self.name = name
+        self.matches = matches
 
-        player_info: Dict = players.filter(pl.col("player_name") == name).to_dicts()[0]
-
-        self.pid: int = player_info["id"]
-
-        self.matches: pl.DataFrame = matches.filter(pl.col("id") == self.pid).sort(
-            ["tourney_date", "match_num"]
-        )
-
-        self.n_matches: int = self.matches.shape[0]
-
-        self.ranks: pl.DataFrame = (
+        self.ranks = (
             self.matches.groupby("year")
             .agg([pl.col("rank").min().cast(pl.UInt16)])
             .sort("year")
         )
 
         self.info = {
-            **player_info,
+            **info,
             **{
-                "age": round((date.today() - player_info["birthdate"]).days / 365.25, 2),
+                # "age": round((date.today() - info["birthdate"]).days / 365.25, 2),
                 "best_rank": self.ranks.select(pl.min("rank")).to_dicts()[0]["rank"],
-                "birthdate": player_info["birthdate"].strftime("%d %b %Y"),
+                # "birthdate": info["birthdate"].strftime("%d %b %Y"),
             },
         }
+
+        # called to create attributes for all player matches, without filters
         self.filter()
+
+    @classmethod
+    def from_raw_dataframes(
+        cls,
+        name: str,
+        raw_matches: pl.DataFrame,
+        raw_players: pl.DataFrame
+        ) -> "Player": 
+
+
+        info = raw_players.filter(pl.col("player_name") == name).to_dicts()[0]
+
+        matches = (raw_matches
+            .filter(pl.col("id") == info["id"])
+            .sort(["tourney_date", "match_num"])
+        )
+        return Player(name, matches, info)
+
+        
 
     def __repr__(self):
 
-        return f"Player {self.player_name} with {self.n_matches} matches played"
+        return f"Player {self.name} with {self.matches.shape[0]} matches played"
 
     def filter(
         self,
@@ -113,6 +130,8 @@ class Player:
         )
         self.surface_wl = self.get_surface_winloss(self.selected_matches)
         self.h2h = self.get_h2h(self.selected_matches)
+
+        return self
 
     @staticmethod
     def filter_matches(matches: pl.DataFrame, filters: Dict) -> pl.DataFrame:
@@ -226,7 +245,7 @@ class Player:
                     (pl.col("df") / pl.col("svpt")).alias("perc_df"),
                     (pl.col("1stIn") / pl.col("svpt")).alias("perc_1stIn"),
                     (pl.col("1stWon") / pl.col("1stIn")).alias("perc_1stWon"),
-                    (pl.col("2ndWon") / pl.col("2ndIn")).alias("perc_secondWon"),
+                    (pl.col("2ndWon") / pl.col("2ndIn")).alias("perc_2ndWon"),
                     (pl.col("returnWon") / pl.col("returnPlayed")).alias(
                         "perc_returnWon"
                     ),
