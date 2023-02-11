@@ -18,9 +18,9 @@ colors:
     - magenta
 
 serve_return_cols:
-    - firstIn 
-    - firstWon 
-    - secondWon 
+    - 1stIn 
+    - 1stWon 
+    - 2ndWon 
     - returnWon 
     - ace 
     - df
@@ -29,7 +29,7 @@ under_pressure_cols:
     - bpSaved
     - bpConverted
     - tbWon
-    - decidingSetWon
+    - deciderWon
 
 
 tourney_level_map:

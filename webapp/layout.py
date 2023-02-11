@@ -106,15 +106,11 @@ layout = html.Div(
                 html.Div(id="open_state", children=True, style={"display": "none"}),
             ],
         ),
-        # Hidden Div Block
+        # Hidden Store Block
         html.Div(
             [
-                # Store selected player matches data
-                html.Div(id="selected_player_matches", style={"display": "none"}),
-                # Store selected player details data
-                html.Div(id="selected_player_details", style={"display": "none"}),
-                # Store selected player ranking data
-                html.Div(id="selected_player_rank", style={"display": "none"}),
+                dcc.Store(id="player_matches"),
+                dcc.Store(id="player_info"),
             ],
             style={"display": "none"},
         ),
