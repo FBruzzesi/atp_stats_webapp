@@ -1,7 +1,8 @@
-from dash import html, dcc 
 import plotly.graph_objects as go
+from dash import dcc, html
 
-def make_serve_return_div(fig: go.Figure, height: str) -> html.Div:
+
+def make_div(fig: go.Figure, height: str) -> html.Div:
     """Create div for serve and return stats"""
 
     div = html.Div(

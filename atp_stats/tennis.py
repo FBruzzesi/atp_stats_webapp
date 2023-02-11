@@ -27,16 +27,12 @@ class Player:
     filtering on the player name
     """
 
-    def __init__(self,
-        name: str,
-        matches: pl.DataFrame,
-        info: Dict
-        ):
+    def __init__(self, name: str, matches: pl.DataFrame, info: Dict):
         """
         Arguments:
             name: name of the player
             matches: dataframe of player matches
-            info: dict containing player info as in 
+            info: dict containing player info as in
                 https://github.com/JeffSackmann/tennis_atp/blob/master/atp_players.csv
         """
 
@@ -63,22 +59,19 @@ class Player:
 
     @classmethod
     def from_raw_dataframes(
-        cls,
-        name: str,
-        raw_matches: pl.DataFrame,
-        raw_players: pl.DataFrame
-        ) -> "Player": 
-
+        cls, name: str, raw_matches: pl.DataFrame, raw_players: pl.DataFrame
+    ) -> "Player":
+        """
+        Initializes Player class from raw dataframes with *all* players matches
+        and full players list.
+        """
 
         info = raw_players.filter(pl.col("player_name") == name).to_dicts()[0]
 
-        matches = (raw_matches
-            .filter(pl.col("id") == info["id"])
-            .sort(["tourney_date", "match_num"])
+        matches = raw_matches.filter(pl.col("id") == info["id"]).sort(
+            ["tourney_date", "match_num"]
         )
         return Player(name, matches, info)
-
-        
 
     def __repr__(self):
 
@@ -123,6 +116,10 @@ class Player:
         self.selected_matches = self.filter_matches(self.matches, filters)
         self.n_matches = self.selected_matches.shape[0]
         self.selected_ranks = self.filter_ranks(self.selected_matches, self.ranks)
+
+        self.perc_overall = self.get_overall_stats(
+            self.selected_matches, self.success_cols, self.total_cols
+        )
 
         self.stats_by_year = self.get_yearly_stats(self.selected_matches)
         self.lower_df, self.upper_df = self.get_confint(
@@ -176,29 +173,20 @@ class Player:
         )
         return selected_ranks
 
-    # def get_overall_stats(self):
-    #
-    #     m = self.selected_matches
-    #
-    #     success_overall = pd.Series(
-    #         m[self.success_cols].fillna(0).to_numpy().sum(axis=0),
-    #         index=[f'success_{c}' for c in self.success_cols])
-    #     total_overall = pd.Series(
-    #         m[self.total_cols].to_numpy().sum(axis=0),
-    #         index=[f'total_{c}' for c in self.success_cols])
-    #
-    #     self.success_overall = success_overall
-    #     self.total_overall = total_overall
-    #
-    #     self.success_overall['success_won'] = m['winner'].sum()
-    #     self.total_overall['total_won'] = m.shape[0]
-    #
-    #     self.perc_overall = pd.Series(
-    #         100*self.success_overall.to_numpy()/self.total_overall.to_numpy(),
-    #         index=['perc_' + c.split('_')[-1] for c in self.success_overall.index]
-    #         )
-    #
-    #     return self
+    @staticmethod
+    def get_overall_stats(
+        selected_matches: pl.DataFrame, success_cols: List[str], total_cols: List[str]
+    ) -> pl.DataFrame:
+        """Stats not stratifies by any other column"""
+
+        perc_overall = selected_matches.select(
+            [(pl.mean("winner") * 100).round(2).alias("win_rate")]
+            + [
+                (pl.sum(s) / pl.sum(t) * 100).round(2).alias(f"perc_{s}")
+                for s, t in zip(success_cols, total_cols)
+            ]
+        )
+        return perc_overall
 
     @staticmethod
     def _aggregate_stats(
@@ -255,7 +243,7 @@ class Player:
                     (pl.col("tbWon") / pl.col("tbPlayed")).alias("perc_tbWon"),
                     (pl.col("deciderPlayed") - pl.col("deciderWon")).alias("deciderLost"),
                     (pl.col("deciderWon") / pl.col("deciderPlayed")).alias(
-                        "perc_decidingSetWon"
+                        "perc_deciderWon"
                     ),
                 ]
             )

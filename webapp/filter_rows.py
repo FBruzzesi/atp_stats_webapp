@@ -16,7 +16,9 @@ style_row3 = styles["style_row3"]
 
 
 def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div]:
-
+    """
+    Generated filter rows
+    """
     row1 = html.Div(
         id="row1",
         className="row",

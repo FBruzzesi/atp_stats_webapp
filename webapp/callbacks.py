@@ -4,21 +4,23 @@ import os
 import sys
 from datetime import date, datetime
 
-import numpy as np
-import pandas as pd
 import polars as pl
 import yaml
 
 # Local imports
 from app import app
-from dash import dash_table, dcc, html
 from dash.dependencies import Input, Output, State
 
 sys.path.append("..")
+from tabs import (
+    make_div_h2h,
+    make_div_serve_return,
+    make_div_summary,
+    make_div_under_pressure,
+)
+
 from atp_stats import Player, Renderer
 from atp_stats.utils import get_player_name
-
-from tabs import make_serve_return_div
 
 # Load config
 with open(os.getcwd() + "/webapp/config.yaml") as file:
@@ -27,12 +29,12 @@ with open(os.getcwd() + "/webapp/config.yaml") as file:
 # surface_colors = config["surface_colors"]
 # colors = config["colors"]
 serve_return_cols = config["serve_return_cols"]
-# under_pressure_cols = config["under_pressure_cols"]
+under_pressure_cols = config["under_pressure_cols"]
 tourney_level_map = config["tourney_level_map"]
 rounds = config["rounds"]
-# details_mapping = config["details_mapping"]
-# matches_mapping = config["matches_mapping"]
-# h2h_mapping = config["h2h_mapping"]
+details_mapping = config["details_mapping"]
+matches_mapping = config["matches_mapping"]
+h2h_mapping = config["h2h_mapping"]
 
 # Load data
 data_path = os.getcwd() + "/data"
@@ -55,7 +57,8 @@ def dt_to_iso(obj):
     [Input("open_details", "n_clicks")],
     [State("open_state", "children")],
 )
-def toggle_collapse(n, is_open):
+def toggle_collapse(n: int, is_open: bool):
+    """open and closes window"""
     if n:
         open_det = "Close Description" if not is_open else "Open Description"
         return [not is_open, open_det]
@@ -129,9 +132,6 @@ def select_player(player_name: str):
     ]
 
     return [
-        # matches.to_pandas().to_json(date_format="iso"),  # TODO: directly from polars?
-        # pd.DataFrame(info, index=[0]).to_json(date_format="iso"),  # FIXME: avoid pandas?
-        # ranks.to_pandas().to_json(date_format="iso"),  # TODO: directly from polars
         json.dumps(matches.to_dicts(), default=dt_to_iso),
         json.dumps(info, default=dt_to_iso),
         yr_min,
@@ -161,10 +161,9 @@ def select_player(player_name: str):
         Input("opponent_rank", "value"),
     ],
     [
-      State("player_name", "value"),
-      State("player_matches", "data"),
-      State("player_info", "data"),
-
+        State("player_name", "value"),
+        State("player_matches", "data"),
+        State("player_info", "data"),
     ],
 )
 def render_player(
@@ -178,69 +177,91 @@ def render_player(
     opponent_ranks,
     name,
     matches,
-    info
+    info,
 ):
+    """Main functionality to render a selected tab given current filters"""
 
     matches = pl.DataFrame(json.loads(matches))
     info = json.loads(info)
 
-    player = (Player(name, matches, info)
-        .filter(
-            time_start=date(time_period[0], 1, 1),
-            time_end=date(time_period[1], 1, 1),
-            surfaces=surfaces,
-            tourney_levels = tourney_levels,
-            tournaments=tournaments,
-            opponents=opponents,
-            rounds=rounds,
-            opponent_ranks=opponent_ranks
-        )
+    player = Player(name, matches, info).filter(
+        time_start=date(time_period[0], 1, 1),
+        time_end=date(time_period[1], 1, 1),
+        surfaces=surfaces,
+        tourney_levels=tourney_levels,
+        tournaments=tournaments,
+        opponents=opponents,
+        rounds=rounds,
+        opponent_ranks=opponent_ranks,
     )
 
     renderer = Renderer(player)
 
     if tab == "summary":
 
-        # fig1, fig2 = renderer.plot_summary()
-        # div = make_summary_div(...)
-        div = html.Div()
-        
+        latest_matches = (
+            player.selected_matches.sort(["tourney_date", "match_num"], reverse=True)
+            .head(15)
+            .with_columns(
+                [
+                    pl.col("tourney_level").apply(lambda v: tourney_level_map.get(v)),
+                    pl.col("opponent_name").apply(get_player_name),
+                ]
+            )
+            .select(list(matches_mapping.keys()))
+            .rename(matches_mapping)
+        )
+
+        fig1, fig2 = renderer.plot_summary()
+
+        info_to_use = (
+            "player_name",
+            "best_rank",
+            "country_code",
+            "birthdate",
+            "height",
+            "hand",
+        )
+        info_to_use_mp = [details_mapping.get(e) for e in info_to_use]
+        info_data = sorted(
+            [
+                {"info": details_mapping.get(k), "value": v}
+                for k, v in player.info.items()
+                if k in info_to_use
+            ],
+            key=lambda d: info_to_use_mp.index(d["info"]),
+        )
+
+        stats_data = [
+            {"info": k.replace("_", " ").replace("perc", "%"), "value": v}
+            for k, v in player.perc_overall.to_dicts()[0].items()
+        ]
+
+        div = make_div_summary(fig1, fig2, info_data, stats_data, latest_matches)
+
     elif tab == "serve_return":
 
         fig = renderer.plot_serve_return_stats(columns=serve_return_cols)
         height = f"{400*len(serve_return_cols)}px"
 
-        div = make_serve_return_div(fig, height)
+        div = make_div_serve_return(fig, height)
 
     elif tab == "under_pressure":
 
-        # fig_under_pressure = renderer.plot_under_pressure(columns=under_pressure_cols)
+        fig = renderer.plot_under_pressure(columns=under_pressure_cols)
+        height = f"{500*len(under_pressure_cols)}px"
 
-        div = html.Div()
+        div = make_div_under_pressure(fig, height)
 
     elif tab == "h2h":
 
-        fig_h2h = renderer.plot_h2h()
+        fig = renderer.plot_h2h()
+        h2h = (
+            player.h2h.select(h2h_mapping.keys())
+            .rename(h2h_mapping)
+            .with_columns([(pl.col(pl.Float64) * 100).round(2)])
+        )
 
-        """h2h = tp.h2h.loc[:, h2h_mapping.keys()].rename(columns=h2h_mapping)
-
-        h2h.iloc[:, 3:] = (100 * h2h.iloc[:, 3:]).round(2)
-
-        dt_h2h = dash_table.DataTable(
-            data=h2h.to_dict("records"),
-            columns=[{"id": c, "name": c} for c in h2h.columns],
-            sort_action="native",
-            filter_action="native",
-            style_cell_conditional=[
-                {"if": {"column_id": "Opponent"}, "text-align": "left"}
-            ],
-            style_data_conditional=[
-                {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
-            ],
-            style_header={"backgroundColor": "rgb(230, 230, 230)", "fontWeight": "bold"},
-            page_size=20,
-        )"""
-
-        div = html.Div()
+        div = make_div_h2h(fig, h2h)
 
     return div

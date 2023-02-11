@@ -88,9 +88,9 @@ matches_mapping:
     ace: Aces
     df: DF
     svpt: SvPt
-    firstIn: 1stIn
-    firstWon: 1stWon
-    secondWon: 2ndWon
+    1stIn: 1stIn
+    1stWon: 1stWon
+    2ndWon: 2ndWon
     bpSaved: BpSaved
     bpFaced: BpFaced
     returnWon: ReturnWon
@@ -102,12 +102,12 @@ h2h_mapping:
     matches_won: Won
     win_rate: Winrate
     perc_ace: "% Aces"
-    perc_df: " % DoubleFaults"
-    perc_firstIn: "% FirstIn"
-    perc_firstWon: "% FirstWon"
-    perc_secondWon: "% SecondWon"
-    perc_returnWon: "% ReturnWon"
+    perc_df: " % Double Faults"
+    perc_1stIn: "% 1st In"
+    perc_1stWon: "% 1st Won"
+    perc_2ndWon: "% 2nd Won"
+    perc_returnWon: "% Return Won"
     perc_bpConverted: "% BP Converted"
     perc_bpSaved: "% BP Saved"
     perc_tbWon: "% TB Won"
-    perc_decidingSetWon: "% Deciding Sets Won"
+    perc_deciderWon: "% Decider Won"

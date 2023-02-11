@@ -65,14 +65,7 @@ header = html.Div(
                 dbc.Col(
                     children=[
                         html.Div(
-                            [
-                                html.H3(
-                                    [
-                                        "ATP Statistics ",
-                                        html.I(className="bi bi-pencil-square"),
-                                    ]
-                                )
-                            ],
+                            [html.H3(["ATP Statistics "])],
                             id="app-title",
                         )
                     ],

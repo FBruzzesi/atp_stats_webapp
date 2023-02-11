@@ -1,36 +1,22 @@
-from dash import dcc, html
+from typing import Any, Dict, List
+
 import plotly.graph_objects as go
+import polars as pl
+from dash import dash_table, dcc, html
 
-def make_summary_div(fig1, fig2, ) -> html.Div:
 
-    # Generate datatables
-    details = tp.player_details
-    details.columns = ["info", "value"]
-    details["info"] = details["info"].map(details_mapping)
+def make_div(
+    fig1: go.Figure,
+    fig2: go.Figure,
+    info_data: List[Dict[str, Any]],
+    stats_data: List[Dict[str, Any]],
+    latest_matches: pl.DataFrame,
+) -> html.Div:
 
-    stats = pd.DataFrame(
-        data={
-            "info": tp.perc_overall.index,
-            "value": np.round(tp.perc_overall.to_numpy(), 2),
-        }
-    )
-    stats["info"] = ["% " + c.split("_")[-1].capitalize() for c in stats["info"]]
-
-    matches = (
-        tp.selected_matches.sort_values(
-            ["tourney_date", "match_num"], ascending=[False, False]
-        )
-        .assign(
-            tourney_level=lambda x: x["tourney_level"].map(tourney_level_map),
-            opponent_name=lambda x: x["opponent_name"].apply(get_player_name),
-        )
-        .loc[:, matches_mapping.keys()]
-        .rename(columns=matches_mapping)
-    )
-
-    dt_details = dash_table.DataTable(
-        data=details.astype(str).to_dict("records"),
-        columns=[{"id": c, "name": c, "type": "datetime"} for c in details.columns],
+    """Create div for summary tab"""
+    dtable_info = dash_table.DataTable(
+        data=info_data,
+        columns=[{"id": c, "name": c, "type": "datetime"} for c in ("info", "value")],
         style_cell={"text-align": "left"},
         style_data_conditional=[
             {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
@@ -38,9 +24,9 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
         style_header={"display": "none"},
     )
 
-    dt_stats = dash_table.DataTable(
-        data=stats.to_dict("records"),
-        columns=[{"id": c, "name": c} for c in stats.columns],
+    dtable_stats = dash_table.DataTable(
+        data=stats_data,
+        columns=[{"id": c, "name": c} for c in ("info", "value")],
         style_cell_conditional=[{"if": {"column_id": "info"}, "text-align": "left"}],
         style_data_conditional=[
             {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
@@ -48,9 +34,9 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
         style_header={"display": "none"},
     )
 
-    dt_recent = dash_table.DataTable(
-        data=matches.head(15).to_dict("records"),
-        columns=[{"id": c, "name": c} for c in matches.columns],
+    dtable_recent = dash_table.DataTable(
+        data=latest_matches.to_dicts(),
+        columns=[{"id": c, "name": c} for c in latest_matches.columns],
         style_cell_conditional=[{"if": {"column_id": "info"}, "text-align": "left"}],
         style_data_conditional=[
             {"if": {"row_index": "odd"}, "backgroundColor": "rgb(248, 248, 248)"}
@@ -60,56 +46,6 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
 
     div = html.Div(
         [
-            # First 2 rows got "broken" from css className not working
-            # html.Div(
-            #     className='row',
-            #     children=[
-            #         html.Div(
-            #             className='two columns',
-            #             children=[
-            #                 html.H5('Player Details', style={'text-align': 'center', 'margin-bottom': '3%'}),
-            #                 dt_details
-            #             ],
-            #             style={'margin-top': '5%', 'margin-left': '5%'}
-            #         ),
-            #         html.Div(
-            #             className='nine columns',
-            #             children=[
-            #                 dcc.Graph(
-            #                     figure=fig1,
-            #                     id='graph_summary',
-            #                     hoverData={'points': [{'customdata': 'Japan'}]},
-            #                 ),
-            #             ],
-            #             style={'margin-top': '2%'}
-            #         ),
-            #     ]
-            # ),
-            # html.Div(
-            #     className='row',
-            #     children=[
-            #         html.Div(
-            #             className='nine columns',
-            #             children=[
-            #                 dcc.Graph(
-            #                     figure=fig2,
-            #                     id='graph_summary',
-            #                     hoverData={'points': [{'customdata': 'Japan'}]},
-            #                 ),
-            #             ],
-            #             style={'margin-top': '-1%', 'width': '75%', 'display': 'inline-block'}
-            #         ),
-            #         html.Div(
-            #             className='two columns',
-            #             children=[
-            #                 html.H5('Player Statistics', style={'text-align': 'center'}),
-            #                 dt_stats
-            #             ],
-            #             style={'margin-top': '1.5%',}
-            #         ),
-            #     ]
-            # ),
-            # Fast fix from here to ln 295
             html.Div(
                 className="row",
                 children=[
@@ -120,7 +56,7 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
                                 "Player Details",
                                 style={"text-align": "center", "margin-bottom": "3%"},
                             ),
-                            dt_details,
+                            dtable_info,
                         ],
                         style={
                             "margin-top": "5%",
@@ -132,10 +68,8 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
                     html.Div(
                         className="two columns",
                         children=[
-                            html.H5(
-                                "Player Statistics", style={"text-align": "center"}
-                            ),
-                            dt_stats,
+                            html.H5("Player Statistics", style={"text-align": "center"}),
+                            dtable_stats,
                         ],
                         style={
                             "margin-top": "1.5%",
@@ -170,7 +104,7 @@ def make_summary_div(fig1, fig2, ) -> html.Div:
                         className="eleven columns",
                         children=[
                             html.H3("Recent Matches", style={"text-align": "center"}),
-                            dt_recent,
+                            dtable_recent,
                         ],
                         style={"margin-top": "1%", "margin-left": "3%"},
                     )
