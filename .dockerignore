@@ -1,0 +1,29 @@
+#Files
+.git
+.gitignore
+.cache
+.idea
+.dockerignore
+
+**/__pychache__
+**/*.egg-info
+**.pyc
+**.pytest_cache
+**.ipynb
+**.bat
+**.egg-info
+**/build
+
+# folders
+docs
+notebooks
+tests
+requirements
+
+# files
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+Makefile
+.pre-commit-config.yaml

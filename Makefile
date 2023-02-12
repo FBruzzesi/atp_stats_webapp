@@ -23,3 +23,11 @@ test-coverage:
 	coverage report -m
 
 check: interrogate style clean-folders
+
+docker-build:
+	docker build -t atp-webapp -f Dockerfile .
+
+	docker container prune --force
+	docker image prune --force
+
+	docker images | grep atp-webapp
