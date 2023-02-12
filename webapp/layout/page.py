@@ -12,9 +12,9 @@ data_path = os.getcwd() + "/data"
 
 players = pl.read_parquet(data_path + "/players.parquet")
 
-tab_style = {"fontWeight": "bold"}
-
-make_tab = partial(dcc.Tab, style=tab_style, selected_style=tab_style)
+make_tab = partial(
+    dcc.Tab, style={"fontWeight": "bold"}, selected_style={"fontWeight": "bold"}
+)
 
 attribution = html.Details(
     title="Description",
@@ -65,8 +65,8 @@ page = html.Div(
         attribution,
         store_matches,
         store_info,
-        *get_filter_rows(players),
+        get_filter_rows(players),
         tabs,
-        dbc.Row(id="tab-content"),  #  html.Div(id="tab-content"),
+        dbc.Row(id="tab-content", style={"margin-left": "1%", "margin-right": "1%"}),
     ]
 )

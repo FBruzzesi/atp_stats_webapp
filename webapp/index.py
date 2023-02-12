@@ -4,7 +4,6 @@
 import argparse
 
 import callbacks
-import dash_bootstrap_components as dbc
 
 # Local imports
 from app import app, server
@@ -16,7 +15,7 @@ app.layout = html.Div(
     id="layout",
     children=[
         header,
-        dbc.Container(id="page-content", children=[page]),
+        html.Div(id="page-content", children=[page]),
     ],
 )
 
