@@ -1,5 +1,6 @@
 dash==2.8.1
-dash_bootstrap_components
-dash-renderer==1.9.1
+dash-bootstrap-components==1.3.1
 gunicorn
 orjson
+pandas
+pyyaml
