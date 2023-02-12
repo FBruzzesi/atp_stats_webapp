@@ -10,9 +10,7 @@ import yaml
 # Local imports
 from app import app
 from dash.dependencies import Input, Output, State
-
-sys.path.append("..")
-from tabs import (
+from layout.tabs import (
     make_div_h2h,
     make_div_serve_return,
     make_div_summary,
@@ -26,8 +24,6 @@ from atp_stats.utils import get_player_name
 with open(os.getcwd() + "/webapp/config.yaml") as file:
     config = yaml.load(file, Loader=yaml.Loader)
 
-# surface_colors = config["surface_colors"]
-# colors = config["colors"]
 serve_return_cols = config["serve_return_cols"]
 under_pressure_cols = config["under_pressure_cols"]
 tourney_level_map = config["tourney_level_map"]

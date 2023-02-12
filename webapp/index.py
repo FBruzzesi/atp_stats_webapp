@@ -3,19 +3,20 @@
 
 import argparse
 
-import callbacks  # TODO: Refactor callbacks before importing
+import callbacks
+import dash_bootstrap_components as dbc
 
 # Local imports
 from app import app, server
 from dash import html
-from layout import header, layout
+from layout import header, page
 
 # App layout
 app.layout = html.Div(
     id="layout",
     children=[
         header,
-        html.Div(id="page-content", children=[layout]),
+        dbc.Container(id="page-content", children=[page]),
     ],
 )
 

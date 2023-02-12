@@ -1,14 +1,12 @@
 #app-header > * {
+    color: white;
     background-color: rgb(94, 123, 123);
     height: 75px
 }
 
-#app-title > * {
-    color: white;
-}
-
 #gh-link, #bug-link, #linkedin-link, #support-link, #social > * {
     color: white;
+    /* background-color: rgb(94, 123, 123); */
     margin-bottom: 50px;
     min-width: auto;
 }
