@@ -7,7 +7,7 @@ import yaml
 from dash import dcc, html
 
 with open(os.getcwd() + "/webapp/styles.yaml") as file:
-    styles = yaml.load(file, Loader=yaml.Loader)
+    styles = yaml.safe_load(file, Loader=yaml.Loader)
 
 style_h3 = styles["style_h3"]
 style_dropdown = styles["style_dropdown"]

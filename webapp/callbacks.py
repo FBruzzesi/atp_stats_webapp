@@ -22,7 +22,7 @@ from atp_stats.utils import get_player_name
 
 # Load config
 with open(os.getcwd() + "/webapp/config.yaml") as file:
-    config = yaml.load(file, Loader=yaml.Loader)
+    config = yaml.safe_load(file, Loader=yaml.Loader)
 
 serve_return_cols = config["serve_return_cols"]
 under_pressure_cols = config["under_pressure_cols"]
@@ -215,6 +215,7 @@ def render_player(
             "best_rank",
             "country_code",
             "birthdate",
+            "age",
             "height",
             "hand",
         )

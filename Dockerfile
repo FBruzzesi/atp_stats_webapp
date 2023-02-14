@@ -20,7 +20,7 @@ RUN python3 -m pip install ".[app]" --no-cache-dir && \
         -name '*.jpg' -name '*.jpeg' -name '*.js.map' -name '*.pyc' \
         -name '*.c' -name '*.pxc' -name '*.pyd' \
     -delete && \
-    rm -rf /var/cache/apt root/.cache
+    rm -rf /var/cache/apt root/.cache /home/atp_user/.cache home/atp_user/.local/share/jupyter
 
 # Expose port
 EXPOSE 8080

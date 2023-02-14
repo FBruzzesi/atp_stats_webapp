@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from functools import reduce
 from operator import and_
 from typing import Dict, List, Optional, Tuple, Union
@@ -45,12 +45,26 @@ class Player:
             .sort("year")
         )
 
+        if isinstance(info["birthdate"], date):
+            age = round((date.today() - info["birthdate"]).days / 365.25, 2)
+            birthdate = info["birthdate"].strftime("%d %b %Y")
+
+        elif isinstance(info["birthdate"], str):
+            age = round(
+                (
+                    date.today() - datetime.strptime(info["birthdate"], "%d %b %Y").date()
+                ).days
+                / 365.25,
+                2,
+            )
+            birthdate = info["birthdate"]
+
         self.info = {
             **info,
             **{
-                # "age": round((date.today() - info["birthdate"]).days / 365.25, 2),
+                "age": age,
+                "birthdate": birthdate,
                 "best_rank": self.ranks.select(pl.min("rank")).to_dicts()[0]["rank"],
-                # "birthdate": info["birthdate"].strftime("%d %b %Y"),
             },
         }
 
