@@ -7,13 +7,13 @@ import yaml
 from dash import dcc, html
 
 with open(os.getcwd() + "/webapp/styles.yaml") as file:
-    styles = yaml.safe_load(file, Loader=yaml.Loader)
+    styles = yaml.safe_load(file)
 
-style_h3 = styles["style_h3"]
+
+style_col = styles["style_col"]
 style_dropdown = styles["style_dropdown"]
-style_row1 = styles["style_row1"]
-style_row2 = styles["style_row2"]
-style_row3 = styles["style_row3"]
+style_top = styles["style_top"]
+style_bottom = styles["style_bottom"]
 
 
 def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div]:
@@ -23,6 +23,7 @@ def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div
 
     players_dropdown = dcc.Dropdown(
         id="player_name",
+        placeholder="Choose a player",
         options=[
             {"label": str(n), "value": str(n)}
             for n in players.select(pl.col("player_name").unique()).to_series().sort()
@@ -32,17 +33,31 @@ def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div
         style=style_dropdown,
     )
 
-    surface_dropdown = dcc.Dropdown(id="surface", multi=True, style=style_dropdown)
-    tourney_lvl_dropdown = dcc.Dropdown(
-        id="tourney_level", multi=True, style=style_dropdown
-    )
-    tourney_dropdown = dcc.Dropdown(
-        id="tournament", searchable=True, multi=True, style=style_dropdown
+    surface_dropdown = dcc.Dropdown(
+        id="surface", placeholder="Select surfaces", multi=True, style=style_dropdown
     )
 
-    opponent_dropdown = dcc.Dropdown(id="opponent", multi=True, style=style_dropdown)
+    tourney_lvl_dropdown = dcc.Dropdown(
+        id="tourney_level",
+        placeholder="Select tournament types",
+        multi=True,
+        style=style_dropdown,
+    )
+    tourney_dropdown = dcc.Dropdown(
+        id="tournament",
+        placeholder="Select tournaments",
+        searchable=True,
+        multi=True,
+        style=style_dropdown,
+    )
+
+    opponent_dropdown = dcc.Dropdown(
+        id="opponent", placeholder="Select opponents", multi=True, style=style_dropdown
+    )
+
     opponent_rank_dropdown = dcc.Dropdown(
         id="opponent_rank",
+        placeholder="Select max opponent rank",
         options=[
             {"label": "Top 5", "value": 5},
             {"label": "Top 10", "value": 10},
@@ -52,95 +67,102 @@ def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div
         ],
         style=style_dropdown,
     )
-    round_dropdown = dcc.Dropdown(id="round", multi=True, style=style_dropdown)
 
-    col_style = {"display": "inline-block", "margin-left": "1%", "width": "23.5%"}
+    round_dropdown = dcc.Dropdown(
+        id="round", placeholder="Select rounds", multi=True, style=style_dropdown
+    )
 
-    row1 = dbc.Row(
-        id="row1",
-        style=style_row1,
+    top_row = dbc.Row(
+        id="top_row",
+        style=style_top,
         children=[
             # Select Player
             dbc.Col(
                 id="select_player",
-                children=[html.H3("Player", style=style_h3), players_dropdown],
+                children=[
+                    # html.H3("Player", style=style_h3),
+                    players_dropdown
+                ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
             # Select Surface
             dbc.Col(
                 id="select_surface",
-                children=[html.H3("Surface Type", style=style_h3), surface_dropdown],
+                children=[
+                    # html.H3("Surface Type", style=style_h3),
+                    surface_dropdown
+                ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
             # Select Tournament Level
             dbc.Col(
                 id="select_tourney_lvl",
                 children=[
-                    html.H3("Tournament Levels", style=style_h3),
+                    # html.H3("Tournament Levels", style=style_h3),
                     tourney_lvl_dropdown,
                 ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
             # Select Tournaments
             dbc.Col(
                 id="select_tourney",
                 children=[
-                    html.H3("Select Tournaments", style=style_h3),
+                    # html.H3("Select Tournaments", style=style_h3),
                     tourney_dropdown,
                 ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
         ],
     )
 
-    row2 = dbc.Row(
-        id="row2",
-        style=style_row2,
+    bottom_row = dbc.Row(
+        id="bottom_row",
+        style=style_bottom,
         children=[
             # Select Opponents
             dbc.Col(
                 id="select_opponent",
-                children=[html.H3("Select Opponents", style=style_h3), opponent_dropdown],
+                children=[
+                    # html.H3("Select Opponents", style=style_h3),
+                    opponent_dropdown
+                ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
             # Select Top Rank
             dbc.Col(
                 id="select_opponent_rank",
                 children=[
-                    html.H3("Opponents Rank", style=style_h3),
+                    # html.H3("Opponents Rank", style=style_h3),
                     opponent_rank_dropdown,
                 ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
             # Select Rounds
             dbc.Col(
                 id="select_round",
-                children=[html.H3("Rounds", style=style_h3), round_dropdown],
+                children=[
+                    # html.H3("Rounds", style=style_h3),
+                    round_dropdown
+                ],
                 width=3,
-                style=col_style,
+                style=style_col,
             ),
-        ],
-    )
-
-    row3 = dbc.Row(
-        id="row3",
-        style=style_row3,
-        children=[
             dbc.Col(
                 id="select_period",
                 children=[
-                    html.H3("Time Period", style=style_h3),
-                    dcc.RangeSlider(id="time_period", step=1),
+                    # html.H3("Time Period", style=style_h3),
+                    html.H3("", style={"margin-top": "15px"}),
+                    dcc.RangeSlider(id="time_period", step=2),
                 ],
-                style={"display": "inline-block", "margin-left": "1%", "width": "47%"},
-                width=6,
-            )
+                width=3,
+                style=style_col,
+            ),
         ],
     )
 
@@ -148,7 +170,13 @@ def get_filter_rows(players: pl.DataFrame) -> Tuple[html.Div, html.Div, html.Div
         id="filters",
         children=[
             dbc.CardHeader("Filters"),
-            dbc.CardBody([row1, row2, row3]),
+            dbc.CardBody(
+                [
+                    top_row,
+                    bottom_row,
+                    # row3
+                ]
+            ),
         ],
         style={"margin-left": "1%", "margin-right": "1%"},
     )

@@ -67,6 +67,6 @@ page = html.Div(
         store_info,
         get_filter_rows(players),
         tabs,
-        dbc.Row(id="tab-content", style={"margin-left": "1%", "margin-right": "1%"}),
+        dbc.Row(id="tab-content", style={"margin-left": "1.5%", "margin-right": "1.5%"}),
     ]
 )

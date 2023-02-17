@@ -1,36 +1,28 @@
-style_h3:
-  text-align: center 
-  font-size: 18px 
-  font-weight: bold 
-  font-family: Arial
-  color: mediumblue 
+style_col:
+    display: inline-block
+    margin-left: 0.5%
+    width: 24.5%
 
 style_dropdown:
-    justify: center 
-    align: center 
+    justify: center
+    align: center
     height: 50px
     text-align: center
+    margin-top: 15px
 
-style_row1:
-    margin-left: 2%
-    margin-right: 2%
-    border-top: thin lightgrey solid 
-    border-left: thin lightgrey solid 
-    border-right: thin lightgrey solid 
-    backgroundColor: rgb(250, 250, 250)
-    
-style_row2:
-    margin-left: 2%
-    margin-right: 2%
+style_top:
+    margin-left: 0.5%
+    margin-right: 0.5%
+    border-top: thin lightgrey solid
     border-left: thin lightgrey solid
     border-right: thin lightgrey solid
     backgroundColor: rgb(250, 250, 250)
-    
-style_row3:
-    margin-left: 2%
-    margin-right: 2%
-    border-bottom: thin lightgrey solid 
-    border-left: thin lightgrey solid 
-    border-right: thin lightgrey solid 
+
+style_bottom:
+    margin-left: 0.5%
+    margin-right: 0.5%
+    border-bottom: thin lightgrey solid
+    border-left: thin lightgrey solid
+    border-right: thin lightgrey solid
     backgroundColor: rgb(250, 250, 250)
     padding: 10px 5px 35px

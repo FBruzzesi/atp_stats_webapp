@@ -22,7 +22,7 @@ from atp_stats.utils import get_player_name
 
 # Load config
 with open(os.getcwd() + "/webapp/config.yaml") as file:
-    config = yaml.safe_load(file, Loader=yaml.Loader)
+    config = yaml.safe_load(file)
 
 serve_return_cols = config["serve_return_cols"]
 under_pressure_cols = config["under_pressure_cols"]
@@ -134,9 +134,9 @@ def select_player(player_name: str):
         yr_max,
         yr_marks,
         yr_value,
-        surfaces,
+        None,  # surfaces,
         surfaces_opt,
-        tourney_levels,
+        None,  # tourney_levels,
         tourney_levels_opt,
         tourney_opt,
         opponents_opt,
