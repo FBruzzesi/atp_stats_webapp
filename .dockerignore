@@ -21,9 +21,10 @@ tests
 requirements
 
 # files
-.gitignore
 .dockerignore
-Dockerfile
-README.md
-Makefile
+.gitignore
 .pre-commit-config.yaml
+Dockerfile
+LICENSE
+Makefile
+README.md
