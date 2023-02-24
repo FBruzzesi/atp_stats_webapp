@@ -12,7 +12,7 @@ WORKDIR /home/atp_user
 ENV PATH="/home/atp_user/.local/bin:${PATH}"
 
 # Copy and install custom code developed in the project
-COPY --chown=wp_user:wp_user . .
+COPY --chown=atp_user:atp_user . .
 
 RUN python3 -m pip install ".[app]" --no-cache-dir && \
     find /usr/local/lib/python3.10/ -follow -type f \

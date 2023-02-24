@@ -5,7 +5,6 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "atp_stats"
 version = "0.2.0"
-author = "Francesco Bruzzesi"
 
 # license = {file = "LICENSE.txt"}
 readme = "README.md"
