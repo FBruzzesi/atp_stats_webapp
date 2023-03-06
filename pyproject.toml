@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "atp_stats"
 version = "0.2.0"
+description = "ATP Stats Webapp"
 
-# license = {file = "LICENSE.txt"}
+license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.8"
 
+authors = [{name = "Francesco Bruzzesi"}]
 
-# Requirements: This is done differently by poetry!
 dependencies = [
     "compclasses==0.2.0",
     "numpy==1.22",
@@ -21,8 +22,13 @@ dependencies = [
     "scipy==1.10.0",
 ]
 
+[project.urls]
+webapp = "https://atp-stats.onrender.com/"
+repository = "https://github.com/FBruzzesi/atp_stats_webapp"
+issue-tracker = "https://github.com/FBruzzesi/atp_stats_webapp/issues"
+
 [project.optional-dependencies]
-app =[
+app = [
     "dash==2.8.1",
     "dash-bootstrap-components==1.3.1",
     "gunicorn==20.1.0",
@@ -31,7 +37,7 @@ app =[
     "orjson==3.8.6",
     ]
 
-dev =[
+dev = [
     "black==22.12.0",
     "interrogate==1.5.0",
     "isort==5.10.1",
@@ -39,7 +45,7 @@ dev =[
     "pytest==7.2.0",
 ]
 
-doc =[
+doc = [
     "mkdocs==1.4.2",
     "mkdocs-material==9.0.0",
     "mkdocstrings==0.19.1",
