@@ -1,6 +1,6 @@
 # ATP Statistics 🎾
 
-Source code for the [atp-stats](https://atp-stats.onrender.com/) tennis webapp built in [Python Dash](https://plotly.com/dash/) and currently deployed on [Render](https://www.heroku.com/), using Docker.
+Source code for the [atp-stats](https://atp-stats.onrender.com/) tennis webapp built in [Python Dash](https://plotly.com/dash/) and currently deployed on [Render](https://render.com/), using Docker.
 
 The goal is to display most of what appears in the Official ATP Tour website in a colorful and more intuitive (to me) manner.
 
@@ -14,10 +14,21 @@ In particular, I am using atp tour-level main draw single matches from 1995 to p
 **❗Remark** that data are under <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.<br /> (Attribution is required. Non-commercial use only).
 
 ## Bugs 🐞
+
 This is a side project which I had fun developing, mostly on weekends, for personal use.
 Therefore I am sure it is possible to find bugs and non-working interactions.
 
 If you find them, please feel free to report them by [opening an issue](https://github.com/FBruzzesi/atp_stats_webapp/issues)
+
+## Run it locally
+
+If you want to run it locally, I would suggest using Docker. To do so:
+
+- Clone the repo: `git clone https://github.com/FBruzzesi/atp_stats_webapp.git`
+- Build docker image: `docker build -t atp-webapp -f Dockerfile .`
+- Run the container: `docker run -it -p 8080:8080 atp-webapp`
+
+Now the webapp should be available at [localhost](http://localhost:8080/)
 
 ## Future work 🚀
 
