@@ -10,16 +10,14 @@ USER atp_user
 WORKDIR /home/atp_user
 
 ENV PATH="/home/atp_user/.local/bin:${PATH}"
+ENV PATH_PYTHON_LIBS="/home/atp_user/.local/lib/python3.10/"
 
 # Copy and install custom code developed in the project
 COPY --chown=atp_user:atp_user . .
 
 RUN python3 -m pip install ".[app]" --no-cache-dir && \
-    find /usr/local/lib/python3.10/ -follow -type f \
-        -name '*.a' -name '*.txt' -name '*.md' -name '*.png' \
-        -name '*.jpg' -name '*.jpeg' -name '*.js.map' -name '*.pyc' \
-        -name '*.c' -name '*.pxc' -name '*.pyd' \
-    -delete && \
+    find ${PATH_PYTHON_LIBS} -follow -regextype posix-extended -regex '.*\.(txt|a|md|png|jpe?g|js\.map|pyc|c|pxc|pyd)$' -delete && \
+    find ${PATH_PYTHON_LIBS} -follow -type d -name 'tests' -exec rm -rf {} + && \
     rm -rf /var/cache/apt root/.cache /home/atp_user/.cache home/atp_user/.local/share/jupyter
 
 # Expose port
