@@ -88,7 +88,6 @@ class Player:
         return Player(name, matches, info)
 
     def __repr__(self):
-
         return f"Player {self.name} with {self.matches.shape[0]} matches played"
 
     def filter(
@@ -157,7 +156,6 @@ class Player:
 
         for key, value in filters.items():
             if (key not in ["time_start", "time_end"]) and (value):
-
                 m = (
                     (pl.col("opponent_rank") < value)
                     if key == "opponent_rank"
@@ -379,7 +377,6 @@ class Renderer:
     """
 
     def __init__(self, player: Player):
-
         self.player = player
 
         self._colors = [
@@ -631,7 +628,6 @@ class Renderer:
         )
 
         for i, col in enumerate(columns):
-
             # Upper bound
             fig.add_trace(
                 go.Scatter(
@@ -739,7 +735,6 @@ class Renderer:
         )
 
         for i, col in enumerate(columns):
-
             fig.add_trace(
                 go.Box(x=yrs, y=y_dist[i], marker_color=colors[i]),
                 row=i + 1,
@@ -818,7 +813,6 @@ class Renderer:
         )
 
         for i, col in enumerate(columns):
-
             # Upper bound
             fig.add_trace(
                 go.Scatter(

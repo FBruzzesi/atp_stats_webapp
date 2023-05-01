@@ -194,7 +194,6 @@ def render_player(
     renderer = Renderer(player)
 
     if tab == "summary":
-
         latest_matches = (
             player.selected_matches.sort(["tourney_date", "match_num"], reverse=True)
             .head(15)
@@ -237,21 +236,18 @@ def render_player(
         div = make_div_summary(fig1, fig2, info_data, stats_data, latest_matches)
 
     elif tab == "serve_return":
-
         fig = renderer.plot_serve_return_stats(columns=serve_return_cols)
         height = f"{400*len(serve_return_cols)}px"
 
         div = make_div_serve_return(fig, height)
 
     elif tab == "under_pressure":
-
         fig = renderer.plot_under_pressure(columns=under_pressure_cols)
         height = f"{500*len(under_pressure_cols)}px"
 
         div = make_div_under_pressure(fig, height)
 
     elif tab == "h2h":
-
         fig = renderer.plot_h2h()
         h2h = (
             player.h2h.select(h2h_mapping.keys())

@@ -12,7 +12,6 @@ def make_div(
     stats_data: List[Dict[str, Any]],
     latest_matches: pl.DataFrame,
 ) -> html.Div:
-
     """Create div for summary tab"""
     dtable_info = dash_table.DataTable(
         data=info_data,
