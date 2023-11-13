@@ -18,7 +18,7 @@ dependencies = [
     "numpy==1.22",
     "polars==0.16.1",
     "plotly==5.13.0",
-    "pyarrow==11.0.0",
+    "pyarrow==14.0.1",
     "scipy==1.10.0",
 ]
 
